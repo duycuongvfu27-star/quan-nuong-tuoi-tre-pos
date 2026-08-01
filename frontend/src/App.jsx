@@ -1160,4 +1160,3 @@ style={{ width: '200px', borderRadius: '8px', margin: '8px 0', border: '1px soli
 )}
 </div>
 );
-}
