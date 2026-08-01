@@ -20,6 +20,14 @@ let staffList = [
   { name: "Thu Ngân 01", pin: "111111", role: "staff" }
 ];
 
+let locationConfig = { 
+  lat: 20.3833, 
+  lng: 106.1333, 
+  maxDistance: 50, 
+  enableProtection: true,
+  enableCustomerOrdering: true // 👈 Công tắc bật/tắt order QR của khách
+};
+
 app.post('/api/bank', (req, res) => {
   if (req.body && req.body.bankId && req.body.accountNo) {
     bankConfig = req.body;
@@ -38,17 +46,31 @@ app.post('/api/staff', (req, res) => {
   }
 });
 
+app.post('/api/location', (req, res) => {
+  if (req.body) {
+    locationConfig = req.body;
+    res.json({ success: true, locationConfig });
+  } else {
+    res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+  }
+});
+
 app.get('/orders', (req, res) => {
   res.json({
     activeOrders,
     tableStatus,
     completedOrders,
     bankConfig,
-    staffList
+    staffList,
+    locationConfig
   });
 });
 
 app.post('/api/orders', (req, res) => {
+  if (!locationConfig.enableCustomerOrdering) {
+    return res.status(403).json({ success: false, message: 'Quán đang tạm ngưng nhận order qua QR!' });
+  }
+
   const { selectedTable, newSelection, status } = req.body;
   if (!selectedTable || !newSelection) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin bàn hoặc món' });

@@ -87,12 +87,12 @@ export default function App() {
 
   const [locationConfig, setLocationConfig] = useState(() => {
     const saved = localStorage.getItem('POS_LOCATION');
-    return saved ? JSON.parse(saved) : { lat: 20.3833, lng: 106.1333, maxDistance: 50, enableProtection: true };
+    return saved ? JSON.parse(saved) : { lat: 20.3833, lng: 106.1333, maxDistance: 50, enableProtection: true, enableCustomerOrdering: true };
   });
 
   const [bankConfig, setBankConfig] = useState(() => {
     const saved = localStorage.getItem('POS_BANK');
-    return saved ? JSON.parse(saved) : { bankId: 'MB', accountNo: '0388888888', accountName: 'QUAN NUONG TUOI TRE' };
+    return saved ? JSON.parse(saved) : { bankId: 'MB', accountNo: '0984414434', accountName: 'QUAN NUONG TUOI TRE' };
   });
 
   const [staffList, setStaffList] = useState(() => {
@@ -147,6 +147,9 @@ export default function App() {
         if (data.staffList && Array.isArray(data.staffList)) {
           setStaffList(data.staffList);
         }
+        if (data.locationConfig) {
+          setLocationConfig(data.locationConfig);
+        }
 
         const orderMap = {};
         const kOrders = [];
@@ -191,6 +194,24 @@ export default function App() {
         alert("✅ Đã lưu thông tin ngân hàng thành công!");
       } else {
         alert("❌ Lỗi lưu thông tin ngân hàng lên server!");
+      }
+    } catch (e) {
+      alert("❌ Lỗi kết nối máy chủ!");
+    }
+  };
+
+  const handleSaveLocationConfig = async () => {
+    try {
+      localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig));
+      const res = await fetch(`${API_URL}/api/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(locationConfig)
+      });
+      if (res.ok) {
+        alert("✅ Đã lưu cấu hình GPS và trạng thái QR thành công!");
+      } else {
+        alert("❌ Lỗi lưu cấu hình lên server!");
       }
     } catch (e) {
       alert("❌ Lỗi kết nối máy chủ!");
@@ -277,6 +298,10 @@ export default function App() {
   };
 
   const sendOrderToKitchen = async () => {
+    if (!locationConfig.enableCustomerOrdering) {
+      alert("⚠️ Quán đang tạm ngưng nhận order tự động qua QR!");
+      return;
+    }
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
       return;
@@ -285,7 +310,7 @@ export default function App() {
     const itemsToSend = [...newSelection];
 
     try {
-      await fetch(`${API_URL}/api/orders`, {
+      const res = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -294,6 +319,11 @@ export default function App() {
           status: 'ordering'
         })
       });
+      const data = await res.json();
+      if (!data.success) {
+        alert("❌ " + data.message);
+        return;
+      }
       setNewSelection([]);
       alert(`🔔 Đã báo bếp thành công cho ${targetTable}!`);
       fetchData();
@@ -485,73 +515,84 @@ export default function App() {
           <span style={{ fontSize: '14px', background: '#f97316', padding: '4px 14px', borderRadius: '12px', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>📍 Đang gọi món tại: {tName}</span>
         </div>
 
-        <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
-          {menu.map((cat, idx) => (
-            <div key={idx} style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', color: '#f97316', fontWeight: 'bold', marginBottom: '6px' }}>{cat.cat}</div>
-              {cat.items.map((item, iIdx) => {
-                const exist = newSelection.find(i => i.name === item.name);
-                const q = exist ? exist.quantity : 0;
-                return (
-                  <div key={iIdx} onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '10px', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer', border: q > 0 ? '2px solid #f97316' : '1px solid #334155' }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#f97316', marginTop: '2px' }}>{item.price.toLocaleString()}đ</div>
-                    </div>
-                    {q > 0 ? <span style={{ background: '#f97316', color: '#fff', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>x{q}</span> : <span style={{ fontSize: '12px', color: '#38bdf8', padding: '4px 8px', background: '#1e293b', borderRadius: '6px' }}>+ Thêm</span>}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-          <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>🛒 MÓN ĐANG CHỌN (CHƯA GỬI):</div>
-          {newSelection.length === 0 ? (
-            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '8px' }}>Chưa chọn món nào</div>
-          ) : (
-            newSelection.map(item => (
-              <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid #334155' }}>
-                <span>{item.name} x{item.quantity}</span>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button onClick={() => updateNewSelection(item.name, item.price, -1)} style={{ background: '#ef4444', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>-</button>
-                  <b style={{ fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</b>
-                  <button onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ background: '#10b981', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>+</button>
-                </div>
-              </div>
-            ))
-          )}
-          <button onClick={sendOrderToKitchen} style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer', fontSize: '15px' }}>🚀 GỬI ORDER CHO QUÁN</button>
-        </div>
-
-        <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
-          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>📋 MÓN ĐÃ BÁO BẾP:</div>
-          {cusItems.length === 0 ? (
-            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '8px' }}>Chưa có món nào</div>
-          ) : (
-            cusItems.map((i, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                <span>• {i.name} x{i.quantity}</span>
-                <span style={{ color: '#f97316' }}>{(i.price * i.quantity).toLocaleString()}đ</span>
-              </div>
-            ))
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', borderTop: '1px solid #334155', paddingTop: '10px', fontWeight: 'bold', fontSize: '14px' }}>
-            <span>Tổng cộng:</span>
-            <span style={{ color: '#4ade80' }}>{cusTotal.toLocaleString()}đ</span>
+        {!locationConfig.enableCustomerOrdering ? (
+          <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', textAlign: 'center', marginTop: '40px', border: '1px solid #ef4444' }}>
+            <h3 style={{ color: '#ef4444', margin: '0 0 10px 0' }}>⚠️ QUÁN ĐANG TẠM ĐÓNG NHẬN ORDER QR</h3>
+            <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+              Tính năng tự gọi món qua mã QR tại bàn đang được quản lý tạm khóa. Vui lòng gọi trực tiếp nhân viên phục vụ để đặt món. Xin cảm ơn quý khách!
+            </p>
           </div>
+        ) : (
+          <>
+            <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+              <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
+              {menu.map((cat, idx) => (
+                <div key={idx} style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '12px', color: '#f97316', fontWeight: 'bold', marginBottom: '6px' }}>{cat.cat}</div>
+                  {cat.items.map((item, iIdx) => {
+                    const exist = newSelection.find(i => i.name === item.name);
+                    const q = exist ? exist.quantity : 0;
+                    return (
+                      <div key={iIdx} onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '10px', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer', border: q > 0 ? '2px solid #f97316' : '1px solid #334155' }}>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.name}</div>
+                          <div style={{ fontSize: '12px', color: '#f97316', marginTop: '2px' }}>{item.price.toLocaleString()}đ</div>
+                        </div>
+                        {q > 0 ? <span style={{ background: '#f97316', color: '#fff', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>x{q}</span> : <span style={{ fontSize: '12px', color: '#38bdf8', padding: '4px 8px', background: '#1e293b', borderRadius: '6px' }}>+ Thêm</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
 
-          {cusTotal > 0 && (
-            <button
-              onClick={() => setShowCustomerCheckout(true)}
-              style={{ width: '100%', marginTop: '12px', padding: '12px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-            >
-              💳 THANH TOÁN VIETQR TẠI BÀN
-            </button>
-          )}
-        </div>
+            <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+              <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>🛒 MÓN ĐANG CHỌN (CHƯA GỬI):</div>
+              {newSelection.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '8px' }}>Chưa chọn món nào</div>
+              ) : (
+                newSelection.map(item => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid #334155' }}>
+                    <span>{item.name} x{item.quantity}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button onClick={() => updateNewSelection(item.name, item.price, -1)} style={{ background: '#ef4444', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>-</button>
+                      <b style={{ fontSize: '14px', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</b>
+                      <button onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ background: '#10b981', color: '#fff', border: 'none', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>+</button>
+                    </div>
+                  </div>
+                ))
+              )}
+              <button onClick={sendOrderToKitchen} style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer', fontSize: '15px' }}>🚀 GỬI ORDER CHO QUÁN</button>
+            </div>
+
+            <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>📋 MÓN ĐÃ BÁO BẾP:</div>
+              {cusItems.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '8px' }}>Chưa có món nào</div>
+              ) : (
+                cusItems.map((i, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
+                    <span>• {i.name} x{i.quantity}</span>
+                    <span style={{ color: '#f97316' }}>{(i.price * i.quantity).toLocaleString()}đ</span>
+                  </div>
+                ))
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', borderTop: '1px solid #334155', paddingTop: '10px', fontWeight: 'bold', fontSize: '14px' }}>
+                <span>Tổng cộng:</span>
+                <span style={{ color: '#4ade80' }}>{cusTotal.toLocaleString()}đ</span>
+              </div>
+
+              {cusTotal > 0 && (
+                <button
+                  onClick={() => setShowCustomerCheckout(true)}
+                  style={{ width: '100%', marginTop: '12px', padding: '12px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  💳 THANH TOÁN VIETQR TẠI BÀN
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
         {showCustomerCheckout && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '16px' }}>
@@ -568,13 +609,9 @@ export default function App() {
                 />
               </div>
 
-              <p style={{ fontSize: '11px', color: '#38bdf8', margin: '10px 0 6px 0', lineHeight: '1.4' }}>
-                💡 <b>Mẹo nhanh:</b> Nhấn giữ vào mã QR trên, sau đó chọn <b>"Mở liên kết"</b> hoặc <b>"Mở trong App Ngân hàng"</b> để thanh toán ngay lập tức!
-              </p>
-
               <button
                 onClick={() => setShowCustomerCheckout(false)}
-                style={{ width: '100%', padding: '10px', backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', marginTop: '6px' }}
+                style={{ width: '100%', padding: '10px', backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', marginTop: '10px' }}
               >
                 ĐÓNG ✕
               </button>
@@ -902,7 +939,7 @@ export default function App() {
           <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #334155', paddingBottom: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <button onClick={() => setSettingsSubTab('menu')} style={{ backgroundColor: settingsSubTab === 'menu' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📖 Menu</button>
             <button onClick={() => setSettingsSubTab('qr')} style={{ backgroundColor: settingsSubTab === 'qr' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📱 Mã QR</button>
-            <button onClick={() => setSettingsSubTab('location')} style={{ backgroundColor: settingsSubTab === 'location' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📍 GPS</button>
+            <button onClick={() => setSettingsSubTab('location')} style={{ backgroundColor: settingsSubTab === 'location' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📍 GPS & QR</button>
             <button onClick={() => setSettingsSubTab('bank')} style={{ backgroundColor: settingsSubTab === 'bank' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💳 Ngân Hàng</button>
             <button onClick={() => setSettingsSubTab('staff')} style={{ backgroundColor: settingsSubTab === 'staff' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>👥 Nhân Viên</button>
           </div>
@@ -1007,24 +1044,39 @@ export default function App() {
 
           {settingsSubTab === 'location' && (
             <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '8px', maxWidth: '500px', border: '1px solid #334155' }}>
-              <h3 style={{ color: '#4ade80', margin: '0 0 14px 0', fontSize: '15px' }}>📍 Cấu Hình Bảo Vệ Chống Order Từ Xa</h3>
+              <h3 style={{ color: '#4ade80', margin: '0 0 14px 0', fontSize: '15px' }}>📍 Cấu Hình QR & Định Vị Bàn</h3>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', padding: '8px', backgroundColor: '#1e293b', borderRadius: '6px' }}>
-                <input
-                  type="checkbox"
-                  id="enableProtection"
-                  checked={locationConfig.enableProtection}
-                  onChange={e => setLocationConfig({ ...locationConfig, enableProtection: e.target.checked })}
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <label htmlFor="enableProtection" style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', color: '#f97316' }}>
-                  Kích hoạt chặn khách ở xa order bằng QR
-                </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', backgroundColor: '#1e293b', borderRadius: '6px', border: locationConfig.enableCustomerOrdering ? '1px solid #10b981' : '1px solid #ef4444' }}>
+                  <input
+                    type="checkbox"
+                    id="enableCustomerOrdering"
+                    checked={locationConfig.enableCustomerOrdering}
+                    onChange={e => setLocationConfig({ ...locationConfig, enableCustomerOrdering: e.target.checked })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="enableCustomerOrdering" style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', color: locationConfig.enableCustomerOrdering ? '#4ade80' : '#ef4444' }}>
+                    {locationConfig.enableCustomerOrdering ? '🟢 Đang MỞ tính năng khách tự order qua QR' : '🔴 Đang KHÓA tính năng khách tự order qua QR'}
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: '#1e293b', borderRadius: '6px' }}>
+                  <input
+                    type="checkbox"
+                    id="enableProtection"
+                    checked={locationConfig.enableProtection}
+                    onChange={e => setLocationConfig({ ...locationConfig, enableProtection: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="enableProtection" style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', color: '#f97316' }}>
+                    Kích hoạt kiểm tra khoảng cách GPS
+                  </label>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '11px', color: '#94a3b8' }}>Kinh Độ / Vĩ Độ GPS Quán:</label>
+                  <label style={{ fontSize: '11px', color: '#94a3b8' }}>Tọa độ GPS Quán:</label>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                     <input
                       type="number"
@@ -1043,7 +1095,6 @@ export default function App() {
                   </div>
                   <button
                     onClick={handleGetCurrentGPS}
-                    onTouchEnd={(e) => { e.preventDefault(); handleGetCurrentGPS(); }}
                     style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '8px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', marginTop: '6px', fontWeight: 'bold' }}
                   >
                     🎯 Lấy vị trí thiết bị hiện tại
@@ -1061,11 +1112,10 @@ export default function App() {
                 </div>
 
                 <button 
-                  onClick={() => alert("✅ Đã lưu cấu hình GPS!")} 
-                  onTouchEnd={(e) => { e.preventDefault(); alert("✅ Đã lưu cấu hình GPS!"); }}
+                  onClick={handleSaveLocationConfig} 
                   style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}
                 >
-                  LƯU CẤU HÌNH ĐỊNH VỊ
+                  LƯU CẤU HÌNH GPS & QR
                 </button>
               </div>
             </div>
@@ -1104,7 +1154,6 @@ export default function App() {
                 </div>
                 <button 
                   onClick={handleSaveBankConfig} 
-                  onTouchEnd={(e) => { e.preventDefault(); handleSaveBankConfig(); }}
                   style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}
                 >
                   LƯU THÔNG TIN NGÂN HÀNG
