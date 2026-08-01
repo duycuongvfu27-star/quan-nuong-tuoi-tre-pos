@@ -5,100 +5,102 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Lưu cấu trúc chi tiết: { totalItems: tổng món tính tiền, pendingKitchenItems: món chờ bếp }
-let activeOrders = {}; 
-let tableStatus = {}; 
-let completedOrdersServer = []; 
+let activeOrders = []; 
+let tableStatus = {};  
+let completedOrders = []; 
 
-// API lấy toàn bộ trạng thái bàn, món ăn và lịch sử
+// Thông tin ngân hàng mặc định của quán
+let bankConfig = { 
+  bankId: 'MB', 
+  accountNo: '0388888888', 
+  accountName: 'QUAN NUONG TUOI TRE' 
+};
+
+// API nhận và lưu thông tin ngân hàng từ màn hình Quản lý / Cài đặt
+app.post('/api/bank', (req, res) => {
+  if (req.body && req.body.bankId && req.body.accountNo) {
+    bankConfig = req.body;
+    res.json({ success: true, bankConfig });
+  } else {
+    res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+  }
+});
+
+// API trả về toàn bộ dữ liệu trạng thái bàn, đơn hàng và cấu hình ngân hàng mới nhất
 app.get('/orders', (req, res) => {
-  const formattedOrders = Object.keys(activeOrders).map(tableName => {
-    const orderData = activeOrders[tableName];
-    return {
-      tableName,
-      items: orderData.totalItems || [],
-      kitchenItems: orderData.pendingKitchenItems || [],
-      tableStatus: tableStatus[tableName] || 'empty'
-    };
-  });
-
   res.json({
+    activeOrders,
     tableStatus,
-    activeOrders: formattedOrders,
-    completedOrders: completedOrdersServer
+    completedOrders,
+    bankConfig
   });
 });
 
-// API nhận order từ khách quét QR hoặc nhân viên POS
+// API xử lý gửi order vào bếp
 app.post('/api/orders', (req, res) => {
   const { selectedTable, newSelection, status } = req.body;
-  if (!selectedTable) return res.status(400).json({ error: "Missing table name" });
-
-  if (!activeOrders[selectedTable]) {
-    activeOrders[selectedTable] = { totalItems: [], pendingKitchenItems: [], status: 'ordering' };
+  if (!selectedTable || !newSelection) {
+    return res.status(400).json({ success: false, message: 'Thiếu thông tin bàn hoặc món' });
   }
 
-  if (newSelection && Array.isArray(newSelection)) {
+  let existing = activeOrders.find(o => o.tableName === selectedTable);
+  if (existing) {
     newSelection.forEach(newItem => {
-      // 1. Thêm vào tổng món của bàn (để tính tiền lúc thanh toán)
-      const existingTotal = activeOrders[selectedTable].totalItems.find(i => i.name === newItem.name);
-      if (existingTotal) {
-        existingTotal.quantity += newItem.quantity;
+      let foundItem = existing.items.find(i => i.name === newItem.name);
+      if (foundItem) {
+        foundItem.quantity += newItem.quantity;
       } else {
-        activeOrders[selectedTable].totalItems.push({ ...newItem });
+        existing.items.push({ ...newItem });
       }
-
-      // 2. Thêm vào món chờ bếp (để hiển thị lên màn hình KDS)
-      const existingKitchen = activeOrders[selectedTable].pendingKitchenItems.find(i => i.name === newItem.name);
-      if (existingKitchen) {
-        existingKitchen.quantity += newItem.quantity;
+    });
+    if (!existing.kitchenItems) existing.kitchenItems = [];
+    newSelection.forEach(newItem => {
+      let kItem = existing.kitchenItems.find(i => i.name === newItem.name);
+      if (kItem) {
+        kItem.quantity += newItem.quantity;
       } else {
-        activeOrders[selectedTable].pendingKitchenItems.push({ ...newItem });
+        existing.kitchenItems.push({ ...newItem });
       }
+    });
+  } else {
+    activeOrders.push({
+      tableName: selectedTable,
+      items: newSelection.map(i => ({ ...i })),
+      kitchenItems: newSelection.map(i => ({ ...i }))
     });
   }
 
   tableStatus[selectedTable] = status || 'ordering';
-  activeOrders[selectedTable].status = tableStatus[selectedTable];
-  
-  res.json({ success: true, activeOrders, tableStatus });
+  res.json({ success: true, activeOrders });
 });
 
-// API checkout, thanh toán, chuyển bàn hoặc bếp xác nhận xong ('busy')
+// API xử lý cập nhật trạng thái bàn và thanh toán
 app.post('/checkout', (req, res) => {
   const { tableName, items, tableStatus: newStatus, completedOrder } = req.body;
-  if (!tableName) return res.status(400).json({ error: "Missing table name" });
+  
+  if (newStatus === 'empty') {
+    activeOrders = activeOrders.filter(o => o.tableName !== tableName);
+    tableStatus[tableName] = 'empty';
+  } else if (items) {
+    let existing = activeOrders.find(o => o.tableName === tableName);
+    if (existing) {
+      existing.items = items;
+    } else {
+      activeOrders.push({ tableName, items, kitchenItems: [] });
+    }
+    if (newStatus) tableStatus[tableName] = newStatus;
+  } else if (newStatus) {
+    tableStatus[tableName] = newStatus;
+  }
 
   if (completedOrder) {
-    completedOrdersServer.push(completedOrder);
+    completedOrders.unshift(completedOrder);
   }
 
-  if (newStatus === 'empty') {
-    delete activeOrders[tableName];
-    tableStatus[tableName] = 'empty';
-  } else if (newStatus === 'busy') {
-    // KHI BẾP BẤM "ĐÃ NƯỚNG XONG": Giữ bàn 'busy' nhưng XÓA SẠCH danh sách chờ của bếp để màn hình bếp mất đi
-    tableStatus[tableName] = 'busy';
-    if (activeOrders[tableName]) {
-      activeOrders[tableName].status = 'busy';
-      activeOrders[tableName].pendingKitchenItems = []; 
-    }
-  } else {
-    if (items) {
-      if (activeOrders[tableName]) {
-        activeOrders[tableName].totalItems = items;
-      } else {
-        activeOrders[tableName] = { totalItems: items, pendingKitchenItems: [], status: newStatus || 'ordering' };
-      }
-    }
-    if (newStatus) {
-      tableStatus[tableName] = newStatus;
-      if (activeOrders[tableName]) activeOrders[tableName].status = newStatus;
-    }
-  }
-
-  res.json({ success: true, activeOrders, tableStatus, completedOrders: completedOrdersServer });
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server đang chạy trên cổng ${PORT}`);
+});

@@ -138,8 +138,6 @@ export default function App() {
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
         }
-
-        // ĐỒNG BỘ THÔNG TIN NGÂN HÀNG TỪ SERVER CHUNG
         if (data.bankConfig) {
           setBankConfig(data.bankConfig);
         }
@@ -456,7 +454,6 @@ export default function App() {
           <span style={{ fontSize: '14px', background: '#f97316', padding: '4px 14px', borderRadius: '12px', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>📍 Đang gọi món tại: {tName}</span>
         </div>
 
-        {/* THỰC ĐƠN GỌI MÓN */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
           {menu.map((cat, idx) => (
@@ -479,7 +476,6 @@ export default function App() {
           ))}
         </div>
 
-        {/* MÓN ĐANG CHỌN (CHƯA GỬI) */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>🛒 MÓN ĐANG CHỌN (CHƯA GỬI):</div>
           {newSelection.length === 0 ? (
@@ -499,7 +495,6 @@ export default function App() {
           <button onClick={sendOrderToKitchen} style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer', fontSize: '15px' }}>🚀 GỬI ORDER CHO QUÁN</button>
         </div>
 
-        {/* MÓN ĐÃ BÁO BẾP & THANH TOÁN VIETQR */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>📋 MÓN ĐÃ BÁO BẾP:</div>
           {cusItems.length === 0 ? (
@@ -527,7 +522,6 @@ export default function App() {
           )}
         </div>
 
-        {/* MODAL VIETQR CHO KHÁCH HÀNG */}
         {showCustomerCheckout && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '16px' }}>
             <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', textAlign: 'center', width: '100%', maxWidth: '320px', border: '1px solid #334155' }}>
