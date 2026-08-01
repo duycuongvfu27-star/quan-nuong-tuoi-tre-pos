@@ -80,10 +80,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_MENU;
   });
 
-  const [tables, setTables] = useState({});
-  const [selectedTable, setSelectedTable] = useState('Bàn 01');
   const [serverOrders, setServerOrders] = useState({});
+  const [tables, setTables] = useState({});
   const [kitchenOrders, setKitchenOrders] = useState([]);
+
+  const [selectedTable, setSelectedTable] = useState('Bàn 01');
   const [newSelection, setNewSelection] = useState([]);
   const [targetTable, setTargetTable] = useState('');
 
@@ -103,7 +104,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
-  // HÀM ĐỒNG BỘ DỮ LIỆU TỪ SERVER RENDER
+  // HÀM ĐỒNG BỘ THỜI GIAN THỰC GIỮA CÁC THIẾT BỊ (GỌI MỖI 2 GIÂY)
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
@@ -118,8 +119,7 @@ export default function App() {
           data.activeOrders.forEach(ord => {
             if (ord.tableName && ord.items && ord.items.length > 0) {
               orderMap[ord.tableName] = ord.items;
-              // Nếu bàn đang ở trạng thái ordering (có món mới báo bếp), tự động đẩy vào màn hình Bếp KDS
-              if (ord.tableStatus === 'ordering') {
+              if (ord.tableStatus === 'ordering' || ord.status === 'ordering') {
                 kOrders.push({
                   tableName: ord.tableName,
                   items: ord.items
@@ -129,17 +129,16 @@ export default function App() {
           });
         }
         setServerOrders(orderMap);
-        setKitchenOrders(kOrders);
+        if (kOrders.length > 0) setKitchenOrders(kOrders);
       }
     } catch (err) {
       console.error("Lỗi sync:", err);
     }
   };
 
-  // KÍCH HOẠT TỰ ĐỘNG ĐỒNG BỘ MỖI 2 GIÂY GIỮA CÁC THIẾT BỊ
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 2000);
+    const interval = setInterval(fetchData, 2000); // 2 giây sync một lần giữa các thiết bị
     return () => clearInterval(interval);
   }, []);
 
@@ -232,20 +231,27 @@ export default function App() {
 
     const itemsToSend = [...newSelection];
 
-    setServerOrders(prev => {
-      const currentTableItems = prev[selectedTable] || [];
-      const merged = [...currentTableItems];
-      
-      itemsToSend.forEach(newItem => {
-        const found = merged.find(i => i.name === newItem.name);
-        if (found) {
-          found.quantity += newItem.quantity;
-        } else {
-          merged.push({ ...newItem });
-        }
-      });
+    const currentTableItems = serverOrders[selectedTable] || [];
+    const merged = [...currentTableItems];
+    
+    itemsToSend.forEach(newItem => {
+      const found = merged.find(i => i.name === newItem.name);
+      if (found) {
+        found.quantity += newItem.quantity;
+      } else {
+        merged.push({ ...newItem });
+      }
+    });
 
-      return { ...prev, [selectedTable]: merged };
+    setServerOrders(prev => ({ ...prev, [selectedTable]: merged }));
+
+    setKitchenOrders(prev => {
+      const existingK = prev.find(o => o.tableName === selectedTable);
+      if (existingK) {
+        return prev.map(o => o.tableName === selectedTable ? { ...o, items: [...o.items, ...itemsToSend] } : o);
+      } else {
+        return [...prev, { tableName: selectedTable, items: itemsToSend }];
+      }
     });
 
     setTables(prev => ({ ...prev, [selectedTable]: 'ordering' }));
@@ -352,6 +358,7 @@ export default function App() {
 
       setServerOrders(prev => ({ ...prev, [selectedTable]: [] }));
       setTables(prev => ({ ...prev, [selectedTable]: 'empty' }));
+      setKitchenOrders(prev => prev.filter(o => o.tableName !== selectedTable));
       setShowCheckout(false);
       setNewSelection([]);
       alert(`🟢 ${selectedTable} đã thanh toán & trả bàn trống!`);
