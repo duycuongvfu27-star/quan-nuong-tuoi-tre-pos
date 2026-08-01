@@ -1,0 +1,8 @@
+{
+  "name": "pos-bbq-system",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node backend/src/index.js",
+    "frontend": "cd frontend && npm run dev"
+  }
+}
