@@ -272,16 +272,19 @@ alert('❌ Lỗi kết nối máy chủ!');
 };
 
 const handleConfirmKitchen = async (tName) => {
+    // 1. Ẩn ngay lập tức trên giao diện
     setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
     setTables(prev => ({ ...prev, [tName]: 'busy' }));
 
     try {
+      // 2. Gửi request lên server để cập nhật trạng thái và clear cờ ordering của bàn
       await fetch(`${API_URL}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableName: tName,
-          tableStatus: 'busy'
+          tableStatus: 'busy',
+          clearOrdering: true // Gửi thêm cờ này để server biết là đã xử lý xong món mới
         })
       });
       fetchData();
