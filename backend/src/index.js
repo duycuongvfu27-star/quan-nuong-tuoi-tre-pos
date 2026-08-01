@@ -5,9 +5,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-let activeOrders = {};         // Lưu danh sách món theo bàn đang hoạt động
-let tableStatus = {};          // Lưu trạng thái bàn
-let completedOrdersServer = []; // Lưu lịch sử các đơn đã thanh toán để đồng bộ báo cáo giữa các máy
+let activeOrders = {};           // Lưu danh sách món theo bàn đang hoạt động
+let tableStatus = {};            // Lưu trạng thái bàn
+let completedOrdersServer = [];  // Lưu lịch sử các đơn đã thanh toán để đồng bộ báo cáo giữa các máy
 
 // API lấy toàn bộ trạng thái bàn, đơn đang chạy và lịch sử báo cáo doanh thu
 app.get('/orders', (req, res) => {
@@ -53,7 +53,7 @@ app.post('/checkout', (req, res) => {
   const { tableName, items, tableStatus: newStatus, completedOrder } = req.body;
   if (!tableName) return res.status(400).json({ error: "Missing table name" });
 
-  // Nếu có gửi kèm thông tin hoàn tất đơn hàng (Thanh toán) thì lưu vào lịch sử chung
+  // Nếu có gửi kèm thông tin hoàn tất đơn hàng (Thanh toán), lưu vào lịch sử chung
   if (completedOrder) {
     completedOrdersServer.push(completedOrder);
   }

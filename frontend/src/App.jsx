@@ -112,6 +112,7 @@ const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
 const [selectedTable, setSelectedTable] = useState('Bàn 01');
 const [newSelection, setNewSelection] = useState([]);
 const [targetTable, setTargetTable] = useState('');
+const [dismissedKitchenTables, setDismissedKitchenTables] = useState([]);
 
 const [showCheckout, setShowCheckout] = useState(false);
 const [showReport, setShowReport] = useState(false);
@@ -272,25 +273,21 @@ alert('❌ Lỗi kết nối máy chủ!');
 };
 
 const handleConfirmKitchen = async (tName) => {
-    // 1. Ẩn ngay lập tức trên giao diện
-    setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
+    setDismissedKitchenTables(prev => [...prev, tName]);
     setTables(prev => ({ ...prev, [tName]: 'busy' }));
 
     try {
-      // 2. Gửi request lên server để cập nhật trạng thái và clear cờ ordering của bàn
       await fetch(`${API_URL}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableName: tName,
-          tableStatus: 'busy',
-          clearOrdering: true // Gửi thêm cờ này để server biết là đã xử lý xong món mới
+          tableStatus: 'busy'
         })
       });
       fetchData();
     } catch (e) {
       console.error("Lỗi xác nhận bếp:", e);
-      alert("❌ Lỗi kết nối server khi xác nhận bếp!");
     }
   };
 
