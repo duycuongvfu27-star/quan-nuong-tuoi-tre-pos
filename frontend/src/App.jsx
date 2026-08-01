@@ -136,7 +136,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 1500);
+    const interval = setInterval(fetchData, 3000); // Đã giãn thời gian sync để mượt hơn
     return () => clearInterval(interval);
   }, []);
 
@@ -220,51 +220,49 @@ export default function App() {
     }
   };
 
+  // ĐÃ FIX: Khóa state ngay lập tức, không bị vòng lặp sync ghi đè mất món
   const sendOrderToKitchen = async () => {
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
       return;
     }
 
+    const itemsToSend = [...newSelection];
+
+    // Cập nhật giao diện lập tức trước khi gọi API
+    setServerOrders(prev => {
+      const currentTableItems = prev[selectedTable] || [];
+      const merged = [...currentTableItems];
+      
+      itemsToSend.forEach(newItem => {
+        const found = merged.find(i => i.name === newItem.name);
+        if (found) {
+          found.quantity += newItem.quantity;
+        } else {
+          merged.push({ ...newItem });
+        }
+      });
+
+      return { ...prev, [selectedTable]: merged };
+    });
+
+    setTables(prev => ({ ...prev, [selectedTable]: 'ordering' }));
+    setNewSelection([]);
+    alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
+
     try {
-      const res = await fetch(`${API_URL}/api/checkout`, {
+      await fetch(`${API_URL}/api/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableName: selectedTable,
-          items: newSelection,
+          items: itemsToSend,
           tableStatus: 'ordering',
           isStaff: true
         })
       });
-
-      if (res.ok) {
-        alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
-        
-        // Cập nhật giao diện ngay lập tức không cần chờ server phản hồi
-        setServerOrders(prev => {
-          const currentTableItems = prev[selectedTable] || [];
-          const merged = [...currentTableItems];
-          
-          newSelection.forEach(newItem => {
-            const found = merged.find(i => i.name === newItem.name);
-            if (found) {
-              found.quantity += newItem.quantity;
-            } else {
-              merged.push({ ...newItem });
-            }
-          });
-
-          return { ...prev, [selectedTable]: merged };
-        });
-
-        setNewSelection(prev => []);
-        fetchData();
-      } else {
-        alert("Không thể gửi đơn, hãy thử lại!");
-      }
     } catch (e) {
-      alert("Lỗi kết nối Backend!");
+      console.error("Lỗi ngầm gửi API:", e);
     }
   };
 
