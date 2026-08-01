@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:5002/api';
+const API_URL = 'https://quan-nuong-tuoi-tre-pos.onrender.com/api';
 
 const INITIAL_MENU = [
   {
