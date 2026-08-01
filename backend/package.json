@@ -1,15 +1,22 @@
 {
-  "name": "pos-bbq-system",
+  "name": "backend",
   "version": "1.0.0",
+  "description": "Backend API POS Quan Nuong Tuoi Tre",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "node backend/src/index.js",
-    "frontend": "cd frontend && npm run dev"
+    "start": "npx prisma db push && node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build": "npx prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.1",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "@prisma/client": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "prisma": "^5.0.0"
   }
 }
