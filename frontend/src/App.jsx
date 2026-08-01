@@ -148,11 +148,12 @@ const kOrders = [];
 if (data.activeOrders && Array.isArray(data.activeOrders)) {
 data.activeOrders.forEach(ord => {
 if (ord.tableName && ord.items && ord.items.length > 0) {
-orderMap[ord.tableName] = ord.items;
-if (ord.status === 'ordering') {
+        orderMap[ord.tableName] = ord.items;
+      }
+      if (ord.tableStatus === 'ordering' || ord.tableStatus === 'busy') {
         kOrders.push({
           tableName: ord.tableName,
-          items: ord.kitchenItems || []
+          items: ord.items
         });
       }
 }
