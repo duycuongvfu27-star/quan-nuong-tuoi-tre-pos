@@ -55,7 +55,6 @@ const INITIAL_STAFF = [
 ];
 
 export default function App() {
-  // Kiểm tra xem trình duyệt đang mở có phải là khách quét QR từ bàn hay không (URL có dạng ?table=Bàn 01)
   const urlParams = new URLSearchParams(window.location.search);
   const qrTableParam = urlParams.get('table');
 
@@ -95,6 +94,7 @@ export default function App() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [completedOrders, setCompletedOrders] = useState([]);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState(null); // Lưu thông tin đơn hàng đang được chọn xem chi tiết
 
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPin, setNewStaffPin] = useState('');
@@ -108,7 +108,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
-  // ĐỒNG BỘ THỜI GIAN THỰC TỪ SERVER CHO TẤT CẢ CÁC MÁY (MỖI 2 GIÂY)
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
@@ -227,7 +226,6 @@ export default function App() {
     }
   };
 
-  // GỬI BÁO BẾP / KHÁCH GỬI ORDER TỪ QR
   const sendOrderToKitchen = async () => {
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
@@ -344,6 +342,7 @@ export default function App() {
         })
       });
 
+      // LƯU LẠI TÊN NHÂN VIÊN THANH TOÁN VÀ DANH SÁCH MÓN ĂN VÀO ĐƠN HÀNG HOÀN TẤT
       setCompletedOrders(prev => [
         ...prev,
         {
@@ -351,7 +350,8 @@ export default function App() {
           tableName: selectedTable,
           totalAmount: currentTotal,
           time: new Date().toLocaleTimeString(),
-          itemsCount: activeServerItems.reduce((sum, i) => sum + i.quantity, 0)
+          staffName: user.name,
+          items: [...activeServerItems]
         }
       ]);
 
@@ -425,7 +425,6 @@ export default function App() {
     .map((_, idx) => `Bàn ${String(idx + 1).padStart(2, '0')}`)
     .filter(tName => (tables[tName] || 'empty') === 'empty' && tName !== selectedTable);
 
-  // GIAO DIỆN DÀNH RIÊNG CHO KHÁCH QUÉT QR TỪ ĐIỆN THOẠI
   if (qrTableParam) {
     const customerTableItems = serverOrders[qrTableParam] || [];
     const customerTotal = customerTableItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
@@ -437,7 +436,6 @@ export default function App() {
           <span style={{ fontSize: '14px', backgroundColor: '#f97316', color: '#fff', padding: '2px 10px', borderRadius: '12px', fontWeight: 'bold' }}>📍 {qrTableParam}</span>
         </div>
 
-        {/* Danh sách thực đơn cho khách chọn */}
         <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', maxHeight: '40vh', overflowY: 'auto' }}>
           <h3 style={{ fontSize: '13px', color: '#4ade80', margin: '0 0 8px 0' }}>📖 THỰC ĐƠN GỌI MÓN</h3>
           {menu.map((cat, idx) => (
@@ -460,7 +458,6 @@ export default function App() {
           ))}
         </div>
 
-        {/* Giỏ hàng món mới gọi */}
         <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '13px', color: '#38bdf8', margin: '0 0 8px 0' }}>🛒 MÓN CHỜ GỬI BẾP</h3>
           {newSelection.length === 0 ? (
@@ -482,7 +479,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Danh sách món đã gọi trước đó */}
         <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px' }}>
           <h3 style={{ fontSize: '13px', color: '#4ade80', margin: '0 0 8px 0' }}>📋 MÓN ĐÃ GỬI BẾP CỦA BÀN</h3>
           {customerTableItems.length === 0 ? (
@@ -504,7 +500,6 @@ export default function App() {
     );
   }
 
-  // ĐĂNG NHẬP DÀNH CHO NHÂN VIÊN / QUẢN LÝ TRÊN MÁY TÍNH
   if (!user) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: '#fff', fontFamily: 'sans-serif' }}>
@@ -815,41 +810,14 @@ export default function App() {
         <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', minHeight: '75vh' }}>
           <h2 style={{ color: '#f97316', margin: '0 0 16px 0' }}>⚙️ TRUNG TÂM CÀI ĐẶT HỆ THỐNG</h2>
 
-          {/* Sub-menu Cài đặt */}
           <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid #334155', paddingBottom: '12px', marginBottom: '20px' }}>
-            <button
-              onClick={() => setSettingsSubTab('menu')}
-              style={{ backgroundColor: settingsSubTab === 'menu' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              📖 Quản Lý Menu & Nhập Giá Mới
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('qr')}
-              style={{ backgroundColor: settingsSubTab === 'qr' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              📱 Mã QR Order Cho 16 Bàn
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('location')}
-              style={{ backgroundColor: settingsSubTab === 'location' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              📍 Định Vị GPS & Chống Order Từ Xa
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('bank')}
-              style={{ backgroundColor: settingsSubTab === 'bank' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              💳 Tài Khoản VietQR
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('staff')}
-              style={{ backgroundColor: settingsSubTab === 'staff' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              👥 Nhân Viên & Mã PIN
-            </button>
+            <button onClick={() => setSettingsSubTab('menu')} style={{ backgroundColor: settingsSubTab === 'menu' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📖 Quản Lý Menu & Nhập Giá Mới</button>
+            <button onClick={() => setSettingsSubTab('qr')} style={{ backgroundColor: settingsSubTab === 'qr' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📱 Mã QR Order Cho 16 Bàn</button>
+            <button onClick={() => setSettingsSubTab('location')} style={{ backgroundColor: settingsSubTab === 'location' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📍 Định Vị GPS & Chống Order Từ Xa</button>
+            <button onClick={() => setSettingsSubTab('bank')} style={{ backgroundColor: settingsSubTab === 'bank' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>💳 Tài Khoản VietQR</button>
+            <button onClick={() => setSettingsSubTab('staff')} style={{ backgroundColor: settingsSubTab === 'staff' ? '#3b82f6' : '#0f172a', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>👥 Nhân Viên & Mã PIN</button>
           </div>
 
-          {/* SUBTAB: TẠO MÃ QR ORDER CHO 16 BÀN */}
           {settingsSubTab === 'qr' && (
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
@@ -875,7 +843,6 @@ export default function App() {
             </div>
           )}
 
-          {/* SUBTAB: QUẢN LÝ MENU VỚI Ô NHẬP GIÁ TRỰC TIẾP */}
           {settingsSubTab === 'menu' && (
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
@@ -949,7 +916,6 @@ export default function App() {
             </div>
           )}
 
-          {/* SUBTAB: ĐỊNH VỊ GPS VÀ CHỐNG ORDER TỪ XA */}
           {settingsSubTab === 'location' && (
             <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '8px', maxWidth: '550px', border: '1px solid #334155' }}>
               <h3 style={{ color: '#4ade80', margin: '0 0 16px 0' }}>📍 Cấu Hình Bảo Vệ Chống Order Từ Xa</h3>
@@ -1012,7 +978,6 @@ export default function App() {
             </div>
           )}
 
-          {/* SUBTAB: TÀI KHOẢN NGÂN HÀNG VIETQR */}
           {settingsSubTab === 'bank' && (
             <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '8px', maxWidth: '500px', border: '1px solid #334155' }}>
               <h3 style={{ color: '#4ade80', margin: '0 0 16px 0' }}>💳 Cấu Hình Mã QR Ngân Hàng</h3>
@@ -1051,7 +1016,6 @@ export default function App() {
             </div>
           )}
 
-          {/* SUBTAB: NHÂN VIÊN & MÃ PIN */}
           {settingsSubTab === 'staff' && (
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #334155' }}>
@@ -1107,10 +1071,10 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL BÁO CÁO DOANH THU */}
+      {/* MODAL BÁO CÁO DOANH THU (CÓ XEM CHI TIẾT MÓN & TÊN NHÂN VIÊN) */}
       {showReport && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-          <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', width: '500px', border: '1px solid #334155' }}>
+          <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', width: '600px', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, color: '#f97316' }}>📊 BÁO CÁO DOANH THU CA</h3>
               <button onClick={() => setShowReport(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '18px' }}>✕</button>
@@ -1127,32 +1091,55 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#0f172a', borderRadius: '6px' }}>
+            <div style={{ maxHeight: '220px', overflowY: 'auto', backgroundColor: '#0f172a', borderRadius: '6px', marginBottom: '12px' }}>
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#334155', color: '#94a3b8' }}>
                     <th style={{ padding: '8px' }}>Giờ</th>
                     <th style={{ padding: '8px' }}>Bàn</th>
+                    <th style={{ padding: '8px' }}>Thu ngân</th>
                     <th style={{ padding: '8px', textAlign: 'right' }}>Tổng tiền</th>
+                    <th style={{ padding: '8px', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {completedOrders.length === 0 ? (
                     <tr>
-                      <td colSpan="3" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>Chưa có đơn thanh toán nào</td>
+                      <td colSpan="5" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>Chưa có đơn thanh toán nào</td>
                     </tr>
                   ) : (
-                    completedOrders.map((ord, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                    completedOrders.map((ord) => (
+                      <tr key={ord.id} style={{ borderBottom: '1px solid #1e293b' }}>
                         <td style={{ padding: '8px' }}>{ord.time}</td>
                         <td style={{ padding: '8px', color: '#f97316', fontWeight: 'bold' }}>{ord.tableName}</td>
+                        <td style={{ padding: '8px', color: '#38bdf8' }}>{ord.staffName}</td>
                         <td style={{ padding: '8px', textAlign: 'right', color: '#4ade80', fontWeight: 'bold' }}>{ord.totalAmount.toLocaleString()}đ</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <button onClick={() => setSelectedOrderDetails(ord)} style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>Xem món</button>
+                        </td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
+
+            {selectedOrderDetails && (
+              <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '6px', border: '1px solid #3b82f6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: 'bold', color: '#38bdf8' }}>
+                  <span>📋 Chi tiết món của {selectedOrderDetails.tableName} ({selectedOrderDetails.time})</span>
+                  <button onClick={() => setSelectedOrderDetails(null)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>Đóng ✕</button>
+                </div>
+                <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                  {selectedOrderDetails.items.map((i, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px', color: '#cbd5e1' }}>
+                      <span>• {i.name} x{i.quantity}</span>
+                      <span style={{ color: '#f97316' }}>{(i.price * i.quantity).toLocaleString()}đ</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
