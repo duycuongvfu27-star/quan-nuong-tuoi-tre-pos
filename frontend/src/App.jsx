@@ -97,20 +97,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('pos');
   const [settingsSubTab, setSettingsSubTab] = useState('menu');
 
-  const [locationConfig, setLocationConfig] = useState(() => {
-    const saved = localStorage.getItem('POS_LOCATION');
-    return saved ? JSON.parse(saved) : { lat: 20.3252630, lng: 106.0159622, maxDistance: 50, enableProtection: true, enableCustomerOrdering: true };
-  });
-
-  const [bankConfig, setBankConfig] = useState(() => {
-    const saved = localStorage.getItem('POS_BANK');
-    return saved ? JSON.parse(saved) : { bankId: 'MB', accountNo: '0984414434', accountName: 'QUAN NUONG TUOI TRE' };
-  });
-
-  const [staffList, setStaffList] = useState(() => {
-    const saved = localStorage.getItem('POS_STAFF');
-    return saved ? JSON.parse(saved) : INITIAL_STAFF;
-  });
+  const [locationConfig, setLocationConfig] = useState({ lat: 20.3252630, lng: 106.0159622, maxDistance: 50, enableProtection: true, enableCustomerOrdering: true });
+  const [bankConfig, setBankConfig] = useState({ bankId: 'MB', accountNo: '0984414434', accountName: 'QUAN NUONG TUOI TRE' });
+  const [staffList, setStaffList] = useState(INITIAL_STAFF);
 
   const [menu, setMenu] = useState(() => {
     const saved = localStorage.getItem('POS_MENU_V2');
@@ -139,9 +128,6 @@ export default function App() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemPrice, setNewItemPrice] = useState("");
 
-  useEffect(() => { localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig)); }, [locationConfig]);
-  useEffect(() => { localStorage.setItem('POS_BANK', JSON.stringify(bankConfig)); }, [bankConfig]);
-  useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
 
   const fetchData = async () => {
@@ -196,7 +182,6 @@ export default function App() {
 
   const handleSaveBankConfig = async () => {
     try {
-      localStorage.setItem('POS_BANK', JSON.stringify(bankConfig));
       const res = await fetch(`${API_URL}/api/bank`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +199,6 @@ export default function App() {
 
   const handleSaveLocationConfig = async () => {
     try {
-      localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig));
       const res = await fetch(`${API_URL}/api/location`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
