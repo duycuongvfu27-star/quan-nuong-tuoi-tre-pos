@@ -108,37 +108,39 @@ export default function App() {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
-        setTables(data.tableStatus || {});
+        if (data.tableStatus) setTables(data.tableStatus);
 
         const orderMap = {};
         const kOrders = [];
 
         if (data.activeOrders && Array.isArray(data.activeOrders)) {
           data.activeOrders.forEach(ord => {
-            if (ord.tableName) {
-              orderMap[ord.tableName] = ord.items || [];
-              if (ord.kitchenItems && ord.kitchenItems.length > 0) {
+            if (ord.tableName && ord.items && ord.items.length > 0) {
+              orderMap[ord.tableName] = ord.items;
+              if (ord.tableStatus === 'ordering') {
                 kOrders.push({
                   tableName: ord.tableName,
-                  items: ord.kitchenItems
+                  items: ord.items
                 });
               }
             }
           });
         }
-        setServerOrders(orderMap);
-        setKitchenOrders(kOrders);
+        if (Object.keys(orderMap).length > 0) {
+          setServerOrders(orderMap);
+        }
+        if (kOrders.length > 0) {
+          setKitchenOrders(kOrders);
+        }
       }
     } catch (err) {
       console.error("Lỗi sync:", err);
     }
   };
 
+  // Chỉ gọi fetch một lần duy nhất lúc vừa vào trang, loại bỏ setInterval gây xung đột
   useEffect(() => {
     fetchData();
-    // Đã giãn thời gian sync lên 10 giây để tránh xung đột thao tác tại bàn
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = async () => {
@@ -256,7 +258,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableName: selectedTable,
-          items: itemsToSend,
+          items: serverOrders[selectedTable] ? [...serverOrders[selectedTable], ...itemsToSend] : itemsToSend,
           tableStatus: 'ordering',
           isStaff: true
         })
@@ -319,7 +321,16 @@ export default function App() {
       alert(`🚀 Đã chuyển toàn bộ đơn từ ${selectedTable} sang ${targetTable}!`);
       setSelectedTable(targetTable);
       setTargetTable('');
-      fetchData();
+      setServerOrders(prev => ({
+        ...prev,
+        [targetTable]: currentItems,
+        [selectedTable]: []
+      }));
+      setTables(prev => ({
+        ...prev,
+        [targetTable]: tables[selectedTable] || 'busy',
+        [selectedTable]: 'empty'
+      }));
     } catch (e) {
       alert("Lỗi khi chuyển bàn!");
     }
