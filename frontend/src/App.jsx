@@ -90,7 +90,10 @@ export default function App() {
     return saved ? JSON.parse(saved) : { lat: 20.3833, lng: 106.1333, maxDistance: 50, enableProtection: true };
   });
 
-  const [bankConfig, setBankConfig] = useState({ bankId: 'MB', accountNo: '0388888888', accountName: 'QUAN NUONG TUOI TRE' });
+  const [bankConfig, setBankConfig] = useState(() => {
+    const saved = localStorage.getItem('POS_BANK');
+    return saved ? JSON.parse(saved) : { bankId: 'MB', accountNo: '0388888888', accountName: 'QUAN NUONG TUOI TRE' };
+  });
 
   const [staffList, setStaffList] = useState(() => {
     const saved = localStorage.getItem('POS_STAFF');
@@ -126,6 +129,7 @@ export default function App() {
   const [newItemPrice, setNewItemPrice] = useState("");
 
   useEffect(() => { localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig)); }, [locationConfig]);
+  useEffect(() => { localStorage.setItem('POS_BANK', JSON.stringify(bankConfig)); }, [bankConfig]);
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
 
@@ -138,7 +142,9 @@ export default function App() {
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
         }
-        if (data.bankConfig) {
+        
+        // Chỉ đồng bộ ngân hàng từ server nếu là khách hàng quét QR hoặc lần đầu tải
+        if (tableParam && data.bankConfig) {
           setBankConfig(data.bankConfig);
         }
 
@@ -176,6 +182,7 @@ export default function App() {
 
   const handleSaveBankConfig = async () => {
     try {
+      localStorage.setItem('POS_BANK', JSON.stringify(bankConfig));
       const res = await fetch(`${API_URL}/api/bank`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,7 +191,7 @@ export default function App() {
       if (res.ok) {
         alert("✅ Đã lưu và đồng bộ thông tin ngân hàng thành công cho toàn hệ thống!");
       } else {
-        alert("❌ Lỗi lưu thông tin ngân hàng!");
+        alert("❌ Lỗi lưu thông tin ngân hàng lên server!");
       }
     } catch (e) {
       alert("❌ Lỗi kết nối máy chủ!");
