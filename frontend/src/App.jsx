@@ -141,6 +141,9 @@ export default function App() {
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
         }
+        if (data.bankConfig) {
+          setBankConfig(data.bankConfig);
+        }
 
         const orderMap = {};
         const kOrders = [];
@@ -843,7 +846,11 @@ export default function App() {
                     </div>
                   </div>
 
-                  <button onClick={() => handleConfirmKitchen(ord.tableName)} style={{ width: '100%', padding: '10px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                  <button 
+                    onClick={() => handleConfirmKitchen(ord.tableName)} 
+                    onTouchEnd={(e) => { e.preventDefault(); handleConfirmKitchen(ord.tableName); }}
+                    style={{ width: '100%', padding: '10px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                  >
                     ✅ ĐÃ NƯỚNG XONG
                   </button>
                 </div>
@@ -1001,6 +1008,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={handleGetCurrentGPS}
+                    onTouchEnd={(e) => { e.preventDefault(); handleGetCurrentGPS(); }}
                     style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '8px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', marginTop: '6px', fontWeight: 'bold' }}
                   >
                     🎯 Lấy vị trí thiết bị hiện tại
@@ -1017,7 +1025,11 @@ export default function App() {
                   />
                 </div>
 
-                <button onClick={() => alert("✅ Đã lưu cấu hình GPS!")} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
+                <button 
+                  onClick={() => alert("✅ Đã lưu cấu hình GPS!")} 
+                  onTouchEnd={(e) => { e.preventDefault(); alert("✅ Đã lưu cấu hình GPS!"); }}
+                  style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}
+                >
                   LƯU CẤU HÌNH ĐỊNH VỊ
                 </button>
               </div>
@@ -1055,7 +1067,11 @@ export default function App() {
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', marginTop: '4px', fontSize: '12px' }}
                   />
                 </div>
-                <button onClick={handleSaveBankConfig} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
+                <button 
+                  onClick={handleSaveBankConfig} 
+                  onTouchEnd={(e) => { e.preventDefault(); handleSaveBankConfig(); }}
+                  style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}
+                >
                   LƯU THÔNG TIN NGÂN HÀNG
                 </button>
               </div>
