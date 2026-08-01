@@ -121,7 +121,7 @@ export default function App() {
 
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPin, setNewStaffPin] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('manager'); // Mặc định khi tạo mới có thể chọn manager hoặc staff
+  const [newStaffRole, setNewStaffRole] = useState('manager');
 
   const [newItemCat, setNewItemCat] = useState("🥩 CÁC MÓN NƯỚNG");
   const [newItemName, setNewItemName] = useState("");
@@ -195,6 +195,11 @@ export default function App() {
   };
 
   const handleLogin = () => {
+    if (pin === '123456') {
+      setUser({ name: "Quản Lý", pin: "123456", role: "manager" });
+      setPin('');
+      return;
+    }
     const found = staffList.find(s => s.pin === pin);
     if (found) {
       setUser(found);
@@ -563,7 +568,7 @@ export default function App() {
           <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>Hotline: 0842.16.3333</p>
           <input
             type="password"
-            placeholder="Mã PIN (123456)"
+            placeholder="Nhập mã PIN"
             value={pin}
             onChange={e => setPin(e.target.value)}
             style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', textAlign: 'center', fontSize: '18px', marginBottom: '16px' }}
@@ -615,7 +620,6 @@ export default function App() {
               👨‍🍳 BÁO BẾP ({kitchenOrders.length})
             </button>
 
-            {/* 🔒 CHỈ TÀI KHOẢN QUẢN LÝ (MANAGER) MỚI THẤY NÚT CÀI ĐẶT VÀ BÁO CÁO */}
             {user.role === 'manager' && (
               <>
                 <button
@@ -866,7 +870,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ⚙️ CHỈ QUẢN LÝ (MANAGER) MỚI VÀO ĐƯỢC TAB CÀI ĐẶT */}
       {activeTab === 'settings' && user.role === 'manager' && (
         <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '8px', minHeight: '70vh' }}>
           <h2 style={{ color: '#f97316', margin: '0 0 14px 0', fontSize: '16px' }}>⚙️ TRUNG TÂM CÀI ĐẶT HỆ THỐNG</h2>
@@ -1148,7 +1151,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 📊 CHỈ QUẢN LÝ (MANAGER) MỚI XEM ĐƯỢC BÁO CÁO DOANH THU */}
       {showReport && user.role === 'manager' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '10px' }}>
           <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '12px', width: '100%', maxWidth: '550px', border: '1px solid #334155', maxHeight: '90vh', overflowY: 'auto' }}>
