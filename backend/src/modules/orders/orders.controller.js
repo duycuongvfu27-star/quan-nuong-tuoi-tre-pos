@@ -60,51 +60,55 @@ const handleCheckout = async (req, res) => {
 
     if (!tableName) return res.status(400).json({ message: 'Thiếu tên bàn!' });
 
-    // 1. THAO TÁC CỦA THU NGÂN / NHÂN VIÊN
-    if (tableStatus === 'empty' || tableStatus === 'busy' || isStaff) {
-      if (tableStatus === 'empty') {
-        delete dbOrders[tableName];
-      } else if (tableStatus === 'busy' && dbOrders[tableName]) {
-        dbOrders[tableName].status = 'busy';
-        dbOrders[tableName].pendingKitchenItems = [];
-      }
+    // 1. NẾU LÀ XÓA BÀN (Trống) HOẶC BẾP BẤM XÁC NHẬN XONG MÓN ('busy')
+    if (tableStatus === 'empty') {
+      delete dbOrders[tableName];
       if (req.io) req.io.emit('order_updated', { type: 'status_change', tableName });
       return res.status(200).json({ message: 'Thao tác thành công!' });
     }
 
-    // 2. KHÁCH TỰ ORDER BẰNG QR -> KIỂM TRA ĐỊNH VỊ (GPS & WIFI)
-    const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const isWifiMatch = RESTAURANT_CONFIG.allowedWifiIPs.includes(clientIP);
+    if (tableStatus === 'busy' && dbOrders[tableName]) {
+      dbOrders[tableName].status = 'busy';
+      dbOrders[tableName].pendingKitchenItems = []; // Xóa món chờ sau khi bếp đã làm xong
+      if (req.io) req.io.emit('order_updated', { type: 'status_change', tableName });
+      return res.status(200).json({ message: 'Thao tác thành công!' });
+    }
 
-    let isLocationValid = false;
-    let distance = 0;
+    // 2. NẾU KHÁCH TỰ ORDER QR -> KIỂM TRA ĐỊNH VỊ (GPS & WIFI)
+    if (!isStaff) {
+      const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const isWifiMatch = RESTAURANT_CONFIG.allowedWifiIPs.includes(clientIP);
 
-    if (isWifiMatch) {
-      isLocationValid = true;
-    } else if (userLocation && userLocation.lat && userLocation.lng) {
-      distance = calculateDistanceMeters(
-        userLocation.lat,
-        userLocation.lng,
-        RESTAURANT_CONFIG.lat,
-        RESTAURANT_CONFIG.lng
-      );
+      let isLocationValid = false;
+      let distance = 0;
 
-      if (distance <= RESTAURANT_CONFIG.maxDistanceMeters) {
+      if (isWifiMatch) {
         isLocationValid = true;
+      } else if (userLocation && userLocation.lat && userLocation.lng) {
+        distance = calculateDistanceMeters(
+          userLocation.lat,
+          userLocation.lng,
+          RESTAURANT_CONFIG.lat,
+          RESTAURANT_CONFIG.lng
+        );
+
+        if (distance <= RESTAURANT_CONFIG.maxDistanceMeters) {
+          isLocationValid = true;
+        }
+      }
+
+      if (!isLocationValid) {
+        return res.status(403).json({
+          message: `⛔ BẠN ĐANG Ở NGOÀI PHẠM VI QUÁN! (Khoảng cách: ${Math.round(distance)}m). Vui lòng di chuyển lại gần bàn hoặc bắt Wifi của quán để Order!`
+        });
       }
     }
 
-    if (!isLocationValid && !isStaff) {
-      return res.status(403).json({
-        message: `⛔ BẠN ĐANG Ở NGOÀI PHẠM VI QUÁN! (Khoảng cách: ${Math.round(distance)}m). Vui lòng di chuyển lại gần bàn hoặc bắt Wifi của quán để Order!`
-      });
-    }
-
-    // 3. TẠO ĐƠN & GỬI BẾP
+    // 3. TẠO ĐƠN & GỬI BẾP (Dù nhân viên hay khách gửi món mới đều lưu và báo bếp)
     const existing = dbOrders[tableName] || { totalItems: [], pendingKitchenItems: [], totalAmount: 0 };
     const mergedTotalItems = [...existing.totalItems];
 
-    if (items && Array.isArray(items)) {
+    if (items && Array.isArray(items) && items.length > 0) {
       items.forEach(newItem => {
         const foundIndex = mergedTotalItems.findIndex(i => i.name === newItem.name);
         if (foundIndex > -1) {
@@ -119,7 +123,7 @@ const handleCheckout = async (req, res) => {
 
     dbOrders[tableName] = {
       totalItems: mergedTotalItems,
-      pendingKitchenItems: items || [],
+      pendingKitchenItems: items || [], // Lưu lại các món mới gọi để màn hình bếp hiển thị
       totalAmount: newTotal,
       status: 'ordering'
     };
