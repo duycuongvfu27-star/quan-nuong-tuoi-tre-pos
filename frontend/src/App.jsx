@@ -78,7 +78,6 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const tableParam = urlParams.get('table');
   
-  // CHUẨN HÓA TÊN BÀN LUÔN CÓ ĐỊNH DẠNG 2 CHỮ SỐ (Bàn 01, Bàn 02...)
   const formattedTableNum = tableParam ? String(tableParam).padStart(2, '0') : '';
 
   const [pin, setPin] = useState('');
@@ -134,7 +133,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
 
   const fetchData = async () => {
-    if (tableParam) return;
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
       if (res.ok) {
@@ -255,7 +253,6 @@ export default function App() {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
       return;
     }
-    // ĐẢM BẢO TÊN BÀN LUÔN KHỚP CHUẨN (Bàn 01, Bàn 02...)
     const targetTable = tableParam ? `Bàn ${formattedTableNum}` : selectedTable;
     const itemsToSend = [...newSelection];
 
@@ -440,6 +437,7 @@ export default function App() {
           <span style={{ fontSize: '14px', background: '#f97316', padding: '4px 14px', borderRadius: '12px', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>📍 Đang gọi món tại: {tName}</span>
         </div>
 
+        {/* THỰC ĐƠN GỌI MÓN */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
           {menu.map((cat, idx) => (
@@ -462,6 +460,7 @@ export default function App() {
           ))}
         </div>
 
+        {/* MÓN ĐANG CHỌN (CHƯA GỬI) */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>🛒 MÓN ĐANG CHỌN (CHƯA GỬI):</div>
           {newSelection.length === 0 ? (
@@ -481,6 +480,7 @@ export default function App() {
           <button onClick={sendOrderToKitchen} style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer', fontSize: '15px' }}>🚀 GỬI ORDER CHO QUÁN</button>
         </div>
 
+        {/* MÓN ĐÃ BÁO BẾP (ĐÃ ĐỒNG BỘ THỜI GIAN THỰC) */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>📋 MÓN ĐÃ BÁO BẾP:</div>
           {cusItems.length === 0 ? (
@@ -820,7 +820,7 @@ export default function App() {
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
                 <h3 style={{ margin: '0 0 6px 0', color: '#4ade80', fontSize: '14px' }}>📱 Danh Sách Mã QR Order Cho 16 Bàn</h3>
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Quét mã này sẽ tự động nhận diện đúng tên bàn (Bàn 01 đến Bàn 16) và hiển thị đầy đủ menu trên điện thoại.</p>
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Quét mã này sẽ tự động nhận diện đúng tên bàn và đồng thời cập nhật đầy đủ món đã báo bếp lên điện thoại khách hàng.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
