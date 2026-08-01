@@ -272,7 +272,6 @@ const sendOrderToKitchen = async () => {
     alert('❌ Lỗi kết nối máy chủ!');
   }
 };
-};
 
 const handleConfirmKitchen = async (tName) => {
     setDismissedKitchenTables(prev => [...prev, tName]);
