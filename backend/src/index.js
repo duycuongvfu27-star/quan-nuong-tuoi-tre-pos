@@ -11,7 +11,7 @@ let completedOrders = [];
 
 let bankConfig = { 
   bankId: 'MB', 
-  accountNo: '0388888888', 
+  accountNo: '0984414434', 
   accountName: 'QUAN NUONG TUOI TRE' 
 };
 
