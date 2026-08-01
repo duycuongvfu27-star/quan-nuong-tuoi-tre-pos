@@ -149,17 +149,18 @@ if (data.activeOrders && Array.isArray(data.activeOrders)) {
 data.activeOrders.forEach(ord => {
 if (ord.tableName && ord.items && ord.items.length > 0) {
 orderMap[ord.tableName] = ord.items;
-if (ord.tableStatus === 'ordering' || ord.tableStatus === 'busy') {
-kOrders.push({
-tableName: ord.tableName,
-items: ord.items
+if (ord.status === 'ordering') {
+        kOrders.push({
+          tableName: ord.tableName,
+          items: ord.kitchenItems || []
+        });
+      }
+}
 });
 }
-}
-});
-}
-setServerOrders(orderMap);
-setKitchenOrders(kOrders);
+const filteredKOrders = kOrders.filter(o => !dismissedKitchenTables.includes(o.tableName));
+        setServerOrders(orderMap);
+        setKitchenOrders(filteredKOrders);
 }
 } catch (err) {
 console.error("Lỗi sync:", err);
