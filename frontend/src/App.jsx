@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = 'https://quan-nuong-tuoi-tre-pos.onrender.com/api';
+const API_URL = 'https://quan-nuong-tuoi-tre-pos.onrender.com';
 
 const INITIAL_MENU = [
   {
@@ -227,7 +227,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/checkout`, {
+      await fetch(`${API_URL}/api/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
