@@ -256,15 +256,21 @@ const targetTable = tableParam ? `Bàn ${tableParam}` : selectedTable;
 const itemsToSend = [...newSelection];
 
 try {
-await fetch(`${API_URL}/api/orders`, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-selectedTable: targetTable,
-newSelection: itemsToSend,
-status: 'ordering'
-})
-});
+    await fetch(`${API_URL}/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tableName: targetTable,
+        items: itemsToSend,
+        tableStatus: 'ordering'
+      })
+    });
+    setNewSelection([]);
+    alert(`🔔 Đã báo bếp thành công cho ${targetTable}!`);
+    fetchData();
+  } catch (e) {
+    alert('❌ Lỗi kết nối máy chủ!');
+  }
 setNewSelection([]);
 alert(`🔔 Đã báo bếp thành công cho ${targetTable}!`);
 fetchData();
