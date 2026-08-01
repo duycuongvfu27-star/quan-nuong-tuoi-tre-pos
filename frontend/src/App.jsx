@@ -121,7 +121,7 @@ export default function App() {
 
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPin, setNewStaffPin] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('staff');
+  const [newStaffRole, setNewStaffRole] = useState('manager'); // Mặc định khi tạo mới có thể chọn manager hoặc staff
 
   const [newItemCat, setNewItemCat] = useState("🥩 CÁC MÓN NƯỚNG");
   const [newItemName, setNewItemName] = useState("");
@@ -614,41 +614,47 @@ export default function App() {
             >
               👨‍🍳 BÁO BẾP ({kitchenOrders.length})
             </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              style={{
-                backgroundColor: activeTab === 'settings' ? '#ea580c' : 'transparent',
-                color: '#fff',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              ⚙️ CÀI ĐẶT
-            </button>
-            <button
-              onClick={() => setShowReport(true)}
-              style={{
-                backgroundColor: 'transparent',
-                color: '#3b82f6',
-                border: '1px solid #3b82f6',
-                padding: '6px 10px',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              📊 BÁO CÁO
-            </button>
+
+            {/* 🔒 CHỈ TÀI KHOẢN QUẢN LÝ (MANAGER) MỚI THẤY NÚT CÀI ĐẶT VÀ BÁO CÁO */}
+            {user.role === 'manager' && (
+              <>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  style={{
+                    backgroundColor: activeTab === 'settings' ? '#ea580c' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  ⚙️ CÀI ĐẶT
+                </button>
+                <button
+                  onClick={() => setShowReport(true)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#3b82f6',
+                    border: '1px solid #3b82f6',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  📊 BÁO CÁO
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px' }}>👤 <b>{user.name}</b></span>
+          <span style={{ fontSize: '12px' }}>👤 <b>{user.name}</b> {user.role === 'manager' ? '(Quản lý)' : '(Nhân viên)'}</span>
           <button onClick={() => setUser(null)} style={{ backgroundColor: '#334155', color: '#ef4444', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>Thoát</button>
         </div>
       </header>
@@ -860,7 +866,8 @@ export default function App() {
         </div>
       )}
 
-      {activeTab === 'settings' && (
+      {/* ⚙️ CHỈ QUẢN LÝ (MANAGER) MỚI VÀO ĐƯỢC TAB CÀI ĐẶT */}
+      {activeTab === 'settings' && user.role === 'manager' && (
         <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '8px', minHeight: '70vh' }}>
           <h2 style={{ color: '#f97316', margin: '0 0 14px 0', fontSize: '16px' }}>⚙️ TRUNG TÂM CÀI ĐẶT HỆ THỐNG</h2>
 
@@ -1081,11 +1088,11 @@ export default function App() {
           {settingsSubTab === 'staff' && (
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#4ade80', fontSize: '14px' }}>➕ Thêm Nhân Viên Mới</h3>
+                <h3 style={{ margin: '0 0 10px 0', color: '#4ade80', fontSize: '14px' }}>➕ Thêm Nhân Viên / Quản Lý Mới</h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <input
                     type="text"
-                    placeholder="Tên nhân viên"
+                    placeholder="Tên nhân sự"
                     value={newStaffName}
                     onChange={e => setNewStaffName(e.target.value)}
                     style={{ flex: 2, minWidth: '120px', padding: '8px', borderRadius: '6px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', fontSize: '12px' }}
@@ -1097,6 +1104,14 @@ export default function App() {
                     onChange={e => setNewStaffPin(e.target.value)}
                     style={{ flex: 1, minWidth: '90px', padding: '8px', borderRadius: '6px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', fontSize: '12px' }}
                   />
+                  <select
+                    value={newStaffRole}
+                    onChange={e => setNewStaffRole(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '6px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', fontSize: '12px' }}
+                  >
+                    <option value="manager">Quản lý (Full quyền)</option>
+                    <option value="staff">Nhân viên (Chỉ order/bếp)</option>
+                  </select>
                   <button onClick={handleAddStaff} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
                     THÊM
                   </button>
@@ -1104,7 +1119,7 @@ export default function App() {
               </div>
 
               <div style={{ backgroundColor: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #334155' }}>
-                <h3 style={{ color: '#f97316', margin: '0 0 10px 0', fontSize: '14px' }}>📋 Danh Sách Nhân Viên</h3>
+                <h3 style={{ color: '#f97316', margin: '0 0 10px 0', fontSize: '14px' }}>📋 Danh Sách Nhân Sự</h3>
                 <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#1e293b', color: '#94a3b8' }}>
@@ -1119,7 +1134,7 @@ export default function App() {
                       <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
                         <td style={{ padding: '8px', fontWeight: 'bold' }}>{st.name}</td>
                         <td style={{ padding: '8px', color: '#f97316' }}>{st.pin}</td>
-                        <td style={{ padding: '8px' }}>{st.role}</td>
+                        <td style={{ padding: '8px' }}>{st.role === 'manager' ? 'Quản lý' : 'Nhân viên'}</td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
                           <button onClick={() => handleDeleteStaff(st.pin)} style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Xóa</button>
                         </td>
@@ -1133,7 +1148,8 @@ export default function App() {
         </div>
       )}
 
-      {showReport && (
+      {/* 📊 CHỈ QUẢN LÝ (MANAGER) MỚI XEM ĐƯỢC BÁO CÁO DOANH THU */}
+      {showReport && user.role === 'manager' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '10px' }}>
           <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '12px', width: '100%', maxWidth: '550px', border: '1px solid #334155', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
