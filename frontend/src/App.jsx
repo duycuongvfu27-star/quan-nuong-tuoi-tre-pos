@@ -74,6 +74,19 @@ const INITIAL_STAFF = [
   { name: "Thu Ngân 01", pin: "111111", role: "staff" }
 ];
 
+// Hàm tính khoảng cách GPS (Mét)
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const tableParam = urlParams.get('table');
@@ -297,6 +310,7 @@ export default function App() {
     }
   };
 
+  // 📍 KIỂM TRA GPS CỦA KHÁCH TRƯỚC KHI GỬI ORDER
   const sendOrderToKitchen = async () => {
     if (!locationConfig.enableCustomerOrdering) {
       alert("⚠️ Quán đang tạm ngưng nhận order tự động qua QR!");
@@ -306,6 +320,43 @@ export default function App() {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
       return;
     }
+
+    // Nếu bật bảo vệ GPS
+    if (locationConfig.enableProtection) {
+      if (!navigator.geolocation) {
+        alert("❌ Trình duyệt của bạn không hỗ trợ định vị GPS!");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+          
+          const distance = getDistanceFromLatLonInMeters(
+            userLat, userLng, 
+            locationConfig.lat, locationConfig.lng
+          );
+
+          if (distance > locationConfig.maxDistance) {
+            alert(`❌ Bạn đang ở quá xa quán (${Math.round(distance)}m). Hệ thống chỉ cho phép đặt món khi bạn ở tại bàn trong quán!`);
+            return;
+          }
+
+          // Vị trí hợp lệ -> Gửi đơn
+          await executeSendOrder();
+        },
+        (error) => {
+          alert("❌ Vui lòng cấp quyền truy cập vị trí (GPS) để xác thực bạn đang ở tại quán nướng!");
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    } else {
+      await executeSendOrder();
+    }
+  };
+
+  const executeSendOrder = async () => {
     const targetTable = tableParam ? `Bàn ${formattedTableNum}` : selectedTable;
     const itemsToSend = [...newSelection];
 
