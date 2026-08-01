@@ -103,7 +103,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
-  // ĐÃ FIX: Thêm chống cache ?t= để chặn sạch lỗi 304 ghi đè mất món
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
@@ -137,7 +136,8 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 3000);
+    // Đã giãn thời gian sync lên 10 giây để tránh xung đột thao tác tại bàn
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -204,6 +204,8 @@ export default function App() {
 
     const total = currentItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
 
+    setServerOrders(prev => ({ ...prev, [selectedTable]: currentItems }));
+
     try {
       await fetch(`${API_URL}/checkout`, {
         method: 'POST',
@@ -215,7 +217,6 @@ export default function App() {
           tableStatus: currentItems.length > 0 ? (tables[selectedTable] || 'busy') : 'empty'
         })
       });
-      fetchData();
     } catch (e) {
       alert("Lỗi cập nhật!");
     }
@@ -266,6 +267,9 @@ export default function App() {
   };
 
   const handleConfirmKitchen = async (tName) => {
+    setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
+    setTables(prev => ({ ...prev, [tName]: 'busy' }));
+
     try {
       await fetch(`${API_URL}/checkout`, {
         method: 'POST',
@@ -275,7 +279,6 @@ export default function App() {
           tableStatus: 'busy'
         })
       });
-      fetchData();
     } catch (e) {
       console.error(e);
     }
@@ -344,10 +347,11 @@ export default function App() {
         }
       ]);
 
+      setServerOrders(prev => ({ ...prev, [selectedTable]: [] }));
+      setTables(prev => ({ ...prev, [selectedTable]: 'empty' }));
       setShowCheckout(false);
       setNewSelection([]);
       alert(`🟢 ${selectedTable} đã thanh toán & trả bàn trống!`);
-      fetchData();
     } catch (e) {
       alert("Lỗi thanh toán!");
     }
