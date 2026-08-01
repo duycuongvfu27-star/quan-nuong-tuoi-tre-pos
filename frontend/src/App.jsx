@@ -114,7 +114,6 @@ export default function App() {
   const [selectedTable, setSelectedTable] = useState('Bàn 01');
   const [newSelection, setNewSelection] = useState([]);
   const [targetTable, setTargetTable] = useState('');
-  const [dismissedKitchenTables, setDismissedKitchenTables] = useState([]);
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [showCustomerCheckout, setShowCustomerCheckout] = useState(false);
@@ -142,11 +141,6 @@ export default function App() {
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
         }
-        
-        // Chỉ đồng bộ ngân hàng từ server nếu là khách hàng quét QR hoặc lần đầu tải
-        if (tableParam && data.bankConfig) {
-          setBankConfig(data.bankConfig);
-        }
 
         const orderMap = {};
         const kOrders = [];
@@ -165,9 +159,8 @@ export default function App() {
             }
           });
         }
-        const filteredKOrders = kOrders.filter(o => !dismissedKitchenTables.includes(o.tableName));
         setServerOrders(orderMap);
-        setKitchenOrders(filteredKOrders);
+        setKitchenOrders(kOrders);
       }
     } catch (err) {
       console.error("Lỗi sync:", err);
@@ -189,7 +182,7 @@ export default function App() {
         body: JSON.stringify(bankConfig)
       });
       if (res.ok) {
-        alert("✅ Đã lưu và đồng bộ thông tin ngân hàng thành công cho toàn hệ thống!");
+        alert("✅ Đã lưu thông tin ngân hàng thành công!");
       } else {
         alert("❌ Lỗi lưu thông tin ngân hàng lên server!");
       }
@@ -299,16 +292,14 @@ export default function App() {
   };
 
   const handleConfirmKitchen = async (tName) => {
-    setDismissedKitchenTables(prev => [...prev, tName]);
-    setTables(prev => ({ ...prev, [tName]: 'busy' }));
-
     try {
       await fetch(`${API_URL}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableName: tName,
-          tableStatus: 'busy'
+          tableStatus: 'busy',
+          clearKitchen: true
         })
       });
       fetchData();
@@ -684,7 +675,6 @@ export default function App() {
                   onClick={() => {
                     setSelectedTable(tName);
                     setNewSelection([]);
-                    setTargetTable('');
                   }}
                   style={{
                     backgroundColor: bg,
