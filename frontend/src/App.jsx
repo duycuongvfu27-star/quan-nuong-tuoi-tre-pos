@@ -117,6 +117,7 @@ export default function App() {
   const [dismissedKitchenTables, setDismissedKitchenTables] = useState([]);
 
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showCustomerCheckout, setShowCustomerCheckout] = useState(false); // Modal thanh toán của khách
   const [showReport, setShowReport] = useState(false);
 
   const [newStaffName, setNewStaffName] = useState('');
@@ -480,7 +481,7 @@ export default function App() {
           <button onClick={sendOrderToKitchen} style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer', fontSize: '15px' }}>🚀 GỬI ORDER CHO QUÁN</button>
         </div>
 
-        {/* MÓN ĐÃ BÁO BẾP (ĐÃ ĐỒNG BỘ THỜI GIAN THỰC) */}
+        {/* MÓN ĐÃ BÁO BẾP & THANH TOÁN VIETQR */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>📋 MÓN ĐÃ BÁO BẾP:</div>
           {cusItems.length === 0 ? (
@@ -497,7 +498,39 @@ export default function App() {
             <span>Tổng cộng:</span>
             <span style={{ color: '#4ade80' }}>{cusTotal.toLocaleString()}đ</span>
           </div>
+
+          {cusTotal > 0 && (
+            <button
+              onClick={() => setShowCustomerCheckout(true)}
+              style={{ width: '100%', marginTop: '12px', padding: '12px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+            >
+              💳 THANH TOÁN VIETQR TẠI BÀN
+            </button>
+          )}
         </div>
+
+        {/* MODAL VIETQR CHO KHÁCH HÀNG */}
+        {showCustomerCheckout && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '16px' }}>
+            <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', textAlign: 'center', width: '100%', maxWidth: '320px', border: '1px solid #334155' }}>
+              <h3 style={{ margin: '0 0 6px 0', color: '#f97316', fontSize: '16px' }}>Thanh Toán {tName}</h3>
+              <h2 style={{ color: '#4ade80', margin: '0 0 6px 0', fontSize: '22px' }}>{cusTotal.toLocaleString()}đ</h2>
+              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 10px 0' }}>{bankConfig.bankId} - {bankConfig.accountNo}<br/>{bankConfig.accountName}</p>
+              <img
+                src={`https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-compact2.png?amount=${cusTotal}&addInfo=Thanh%20toan%20${tName}`}
+                alt="VietQR Khách"
+                style={{ width: '190px', borderRadius: '8px', margin: '6px 0', backgroundColor: '#fff', padding: '4px' }}
+              />
+              <p style={{ fontSize: '10px', color: '#38bdf8', margin: '8px 0' }}>Quét mã QR bằng App Ngân hàng bất kỳ để thanh toán chính xác số tiền.</p>
+              <button
+                onClick={() => setShowCustomerCheckout(false)}
+                style={{ width: '100%', padding: '10px', backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', marginTop: '6px' }}
+              >
+                ĐÓNG ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -820,7 +853,7 @@ export default function App() {
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
                 <h3 style={{ margin: '0 0 6px 0', color: '#4ade80', fontSize: '14px' }}>📱 Danh Sách Mã QR Order Cho 16 Bàn</h3>
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Quét mã này sẽ tự động nhận diện đúng tên bàn và đồng thời cập nhật đầy đủ món đã báo bếp lên điện thoại khách hàng.</p>
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Quét mã này sẽ tự động nhận diện đúng bàn và tích hợp nút thanh toán VietQR tự động đồng bộ theo tài khoản ngân hàng của quán.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
