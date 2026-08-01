@@ -144,6 +144,9 @@ export default function App() {
         if (data.bankConfig) {
           setBankConfig(data.bankConfig);
         }
+        if (data.staffList && Array.isArray(data.staffList)) {
+          setStaffList(data.staffList);
+        }
 
         const orderMap = {};
         const kOrders = [];
@@ -389,24 +392,46 @@ export default function App() {
     }
   };
 
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!newStaffName || !newStaffPin) {
       alert("Vui lòng nhập tên và mã PIN!");
       return;
     }
-    setStaffList([...staffList, { name: newStaffName, pin: newStaffPin, role: newStaffRole }]);
+    const updatedStaff = [...staffList, { name: newStaffName, pin: newStaffPin, role: newStaffRole }];
+    setStaffList(updatedStaff);
+    
+    try {
+      await fetch(`${API_URL}/api/staff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedStaff)
+      });
+      alert("✅ Đã thêm nhân sự và đồng bộ thành công!");
+    } catch (e) {
+      alert("✅ Đã thêm nhân sự cục bộ!");
+    }
+
     setNewStaffName('');
     setNewStaffPin('');
-    alert("✅ Đã thêm nhân sự thành công!");
+    fetchData();
   };
 
-  const handleDeleteStaff = (pinCode) => {
+  const handleDeleteStaff = async (pinCode) => {
     if (pinCode === '123456') {
       alert("Không thể xóa tài khoản Quản Lý gốc!");
       return;
     }
     if (window.confirm("Bạn có chắc muốn xóa nhân sự này?")) {
-      setStaffList(staffList.filter(s => s.pin !== pinCode));
+      const updatedStaff = staffList.filter(s => s.pin !== pinCode);
+      setStaffList(updatedStaff);
+      try {
+        await fetch(`${API_URL}/api/staff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStaff)
+        });
+      } catch (e) {}
+      fetchData();
     }
   };
 

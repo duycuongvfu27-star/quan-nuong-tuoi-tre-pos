@@ -11,9 +11,14 @@ let completedOrders = [];
 
 let bankConfig = { 
   bankId: 'MB', 
-  accountNo: '0984414434', 
+  accountNo: '0388888888', 
   accountName: 'QUAN NUONG TUOI TRE' 
 };
+
+let staffList = [
+  { name: "Quản Lý", pin: "123456", role: "manager" },
+  { name: "Thu Ngân 01", pin: "111111", role: "staff" }
+];
 
 app.post('/api/bank', (req, res) => {
   if (req.body && req.body.bankId && req.body.accountNo) {
@@ -24,12 +29,22 @@ app.post('/api/bank', (req, res) => {
   }
 });
 
+app.post('/api/staff', (req, res) => {
+  if (req.body && Array.isArray(req.body)) {
+    staffList = req.body;
+    res.json({ success: true, staffList });
+  } else {
+    res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+  }
+});
+
 app.get('/orders', (req, res) => {
   res.json({
     activeOrders,
     tableStatus,
     completedOrders,
-    bankConfig
+    bankConfig,
+    staffList
   });
 });
 
@@ -89,7 +104,6 @@ app.post('/checkout', (req, res) => {
     tableStatus[tableName] = newStatus;
   }
 
-  // Tự động xóa danh sách món chờ bếp khi bếp bấm đã nướng xong để khách gọi lượt 2 chỉ hiện món mới
   if (clearKitchen && existing) {
     existing.kitchenItems = [];
   }
