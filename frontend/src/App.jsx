@@ -98,8 +98,9 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_STAFF;
   });
 
+  // SỬ DỤNG KEY V2 ĐỂ ÉP LÀM MỚI TOÀN BỘ 25 MÓN NƯỚNG
   const [menu, setMenu] = useState(() => {
-    const saved = localStorage.getItem('POS_MENU');
+    const saved = localStorage.getItem('POS_MENU_V2');
     return saved ? JSON.parse(saved) : INITIAL_MENU;
   });
 
@@ -121,14 +122,14 @@ export default function App() {
   const [newStaffPin, setNewStaffPin] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('staff');
 
-  const [newItemCat, setNewItemCat] = useState("CÁC MÓN NƯỚNG");
+  const [newItemCat, setNewItemCat] = useState("🥩 CÁC MÓN NƯỚNG");
   const [newItemName, setNewItemName] = useState("");
   const [newItemPrice, setNewItemPrice] = useState("");
 
   useEffect(() => { localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig)); }, [locationConfig]);
   useEffect(() => { localStorage.setItem('POS_BANK', JSON.stringify(bankConfig)); }, [bankConfig]);
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
-  useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
+  useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
 
   const fetchData = async () => {
     if (tableParam) return;
@@ -436,9 +437,8 @@ export default function App() {
           <span style={{ fontSize: '14px', background: '#f97316', padding: '4px 14px', borderRadius: '12px', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>📍 Đang gọi món tại: {tName}</span>
         </div>
 
-        {/* ĐÃ GỠ BỎ max-height ĐỂ HIỂN THỊ TRỌN VẸN TẤT CẢ CÁC MÓN */}
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
+          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN (ĐẦY ĐỦ 25 MÓN NƯỚNG)</div>
           {menu.map((cat, idx) => (
             <div key={idx} style={{ marginBottom: '12px' }}>
               <div style={{ fontSize: '12px', color: '#f97316', fontWeight: 'bold', marginBottom: '6px' }}>{cat.cat}</div>
