@@ -689,6 +689,14 @@ export default function App() {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: '#fff', fontFamily: 'sans-serif' }}>
         <div style={{ backgroundColor: '#1e293b', padding: '32px', borderRadius: '12px', textAlign: 'center', width: '320px', border: '1px solid #334155' }}>
+          
+          {/* 🌟 Hiển thị logo heo ngầu số 95 */}
+          <img 
+            src="/logo.png" 
+            alt="Logo Quán" 
+            style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', marginBottom: '14px', border: '2px solid #f97316', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }} 
+          />
+
           <h2 style={{ color: '#f97316', margin: '0 0 8px 0' }}>🔥 QUÁN NƯỚNG TUỔI TRẺ</h2>
           <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>Hotline: 0842.16.3333</p>
           <input
