@@ -90,10 +90,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : { lat: 20.3833, lng: 106.1333, maxDistance: 50, enableProtection: true };
   });
 
-  const [bankConfig, setBankConfig] = useState(() => {
-    const saved = localStorage.getItem('POS_BANK');
-    return saved ? JSON.parse(saved) : { bankId: 'MB', accountNo: '0388888888', accountName: 'QUAN NUONG TUOI TRE' };
-  });
+  const [bankConfig, setBankConfig] = useState({ bankId: 'MB', accountNo: '0388888888', accountName: 'QUAN NUONG TUOI TRE' });
 
   const [staffList, setStaffList] = useState(() => {
     const saved = localStorage.getItem('POS_STAFF');
@@ -129,7 +126,6 @@ export default function App() {
   const [newItemPrice, setNewItemPrice] = useState("");
 
   useEffect(() => { localStorage.setItem('POS_LOCATION', JSON.stringify(locationConfig)); }, [locationConfig]);
-  useEffect(() => { localStorage.setItem('POS_BANK', JSON.stringify(bankConfig)); }, [bankConfig]);
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
 
@@ -141,6 +137,11 @@ export default function App() {
         if (data.tableStatus) setTables(data.tableStatus);
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
+        }
+
+        // ĐỒNG BỘ THÔNG TIN NGÂN HÀNG TỪ SERVER CHUNG
+        if (data.bankConfig) {
+          setBankConfig(data.bankConfig);
         }
 
         const orderMap = {};
@@ -174,6 +175,23 @@ export default function App() {
     const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleSaveBankConfig = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/bank`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bankConfig)
+      });
+      if (res.ok) {
+        alert("✅ Đã lưu và đồng bộ thông tin ngân hàng thành công cho toàn hệ thống!");
+      } else {
+        alert("❌ Lỗi lưu thông tin ngân hàng!");
+      }
+    } catch (e) {
+      alert("❌ Lỗi kết nối máy chủ!");
+    }
+  };
 
   const handleLogin = () => {
     const found = staffList.find(s => s.pin === pin);
@@ -509,7 +527,7 @@ export default function App() {
           )}
         </div>
 
-        {/* MODAL VIETQR CHO KHÁCH HÀNG (CÓ HƯỚNG DẪN NHẤN GIỮ MÃ QR) */}
+        {/* MODAL VIETQR CHO KHÁCH HÀNG */}
         {showCustomerCheckout && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '16px' }}>
             <div style={{ backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', textAlign: 'center', width: '100%', maxWidth: '320px', border: '1px solid #334155' }}>
@@ -525,7 +543,6 @@ export default function App() {
                 />
               </div>
 
-              {/* HƯỚNG DẪN NHẤN GIỮ ĐỂ MỞ APP NGÂN HÀNG */}
               <p style={{ fontSize: '11px', color: '#38bdf8', margin: '10px 0 6px 0', lineHeight: '1.4' }}>
                 💡 <b>Mẹo nhanh:</b> Nhấn giữ vào mã QR trên, sau đó chọn <b>"Mở liên kết"</b> hoặc <b>"Mở trong App Ngân hàng"</b> để thanh toán ngay lập tức!
               </p>
@@ -1047,7 +1064,7 @@ export default function App() {
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155', marginTop: '4px', fontSize: '12px' }}
                   />
                 </div>
-                <button onClick={() => alert("✅ Đã lưu cấu hình ngân hàng!")} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
+                <button onClick={handleSaveBankConfig} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
                   LƯU THÔNG TIN NGÂN HÀNG
                 </button>
               </div>
