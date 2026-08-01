@@ -220,7 +220,6 @@ export default function App() {
     }
   };
 
-  // FIX LỖI: Gán biến res cho fetch để không bị crash khi kiểm tra res.ok
   const sendOrderToKitchen = async () => {
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
@@ -228,7 +227,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/orders`, {
+      const res = await fetch(`${API_URL}/api/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -241,7 +240,25 @@ export default function App() {
 
       if (res.ok) {
         alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
-        setNewSelection([]);
+        
+        // Cập nhật giao diện ngay lập tức không cần chờ server phản hồi
+        setServerOrders(prev => {
+          const currentTableItems = prev[selectedTable] || [];
+          const merged = [...currentTableItems];
+          
+          newSelection.forEach(newItem => {
+            const found = merged.find(i => i.name === newItem.name);
+            if (found) {
+              found.quantity += newItem.quantity;
+            } else {
+              merged.push({ ...newItem });
+            }
+          });
+
+          return { ...prev, [selectedTable]: merged };
+        });
+
+        setNewSelection(prev => []);
         fetchData();
       } else {
         alert("Không thể gửi đơn, hãy thử lại!");
