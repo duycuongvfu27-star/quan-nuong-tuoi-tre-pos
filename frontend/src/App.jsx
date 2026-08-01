@@ -436,7 +436,8 @@ export default function App() {
           <span style={{ fontSize: '14px', background: '#f97316', padding: '4px 14px', borderRadius: '12px', fontWeight: 'bold', display: 'inline-block', marginTop: '6px' }}>📍 Đang gọi món tại: {tName}</span>
         </div>
 
-        <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', maxHeight: '40vh', overflowY: 'auto' }}>
+        {/* ĐÃ GỠ BỎ max-height ĐỂ HIỂN THỊ TRỌN VẸN TẤT CẢ CÁC MÓN */}
+        <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
           <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
           {menu.map((cat, idx) => (
             <div key={idx} style={{ marginBottom: '12px' }}>
@@ -645,8 +646,8 @@ export default function App() {
           {/* TỪ BÀN HẤT XUỐNG: SẮP XẾP THẲNG THEO CHIỀU DỌC (COLUMN) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
-            {/* 1. THỰC ĐƠN GỌI MÓN (NẰM TRÊN) */}
-            <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', maxHeight: '50vh', overflowY: 'auto' }}>
+            {/* 1. THỰC ĐƠN GỌI MÓN (HIỂN THỊ TOÀN BỘ DANH SÁCH MÓN) */}
+            <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px' }}>
               {menu.map((cat, idx) => (
                 <div key={idx} style={{ marginBottom: '16px' }}>
                   <h3 style={{ color: '#f97316', borderBottom: '1px solid #334155', paddingBottom: '4px', margin: '0 0 8px 0', fontSize: '13px' }}>{cat.cat}</h3>
@@ -684,7 +685,7 @@ export default function App() {
               ))}
             </div>
 
-            {/* 2. GIỎ HÀNG & NÚT THANH TOÁN (NẰM DƯỚI MENU) */}
+            {/* 2. GIỎ HÀNG & NÚT THANH TOÁN */}
             <div style={{ backgroundColor: '#1e293b', padding: '14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <h3 style={{ margin: '0', fontSize: '14px', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>
                 📌 Đang chọn: <span style={{ color: '#f97316' }}>{selectedTable}</span>
