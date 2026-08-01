@@ -146,18 +146,17 @@ const orderMap = {};
 const kOrders = [];
 
 if (data.activeOrders && Array.isArray(data.activeOrders)) {
-data.activeOrders.forEach(ord => {
-if (ord.tableName && ord.items && ord.items.length > 0) {
-        orderMap[ord.tableName] = ord.items;
-      }
-      if (ord.items && ord.items.length > 0) {
-        kOrders.push({
-          tableName: ord.tableName,
-          items: ord.items
-        });
-      }
-}
-});
+      data.activeOrders.forEach(ord => {
+        if (ord.tableName && ord.items && ord.items.length > 0) {
+          orderMap[ord.tableName] = ord.items;
+          // Đưa toàn bộ bàn có món vào màn hình bếp để nhân viên thấy và làm
+          kOrders.push({
+            tableName: ord.tableName,
+            items: ord.items
+          });
+        }
+      });
+    }
 }
 const filteredKOrders = kOrders.filter(o => !dismissedKitchenTables.includes(o.tableName));
         setServerOrders(orderMap);
