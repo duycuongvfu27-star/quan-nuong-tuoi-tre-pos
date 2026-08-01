@@ -248,21 +248,21 @@ alert("Lỗi cập nhật!");
 };
 
 const sendOrderToKitchen = async () => {
-if (newSelection.length === 0) {
-alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
-return;
-}
-const targetTable = tableParam ? `Bàn ${tableParam}` : selectedTable;
-const itemsToSend = [...newSelection];
+  if (newSelection.length === 0) {
+    alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
+    return;
+  }
+  const targetTable = tableParam ? `Bàn ${tableParam}` : selectedTable;
+  const itemsToSend = [...newSelection];
 
-try {
-    await fetch(`${API_URL}/checkout`, {
+  try {
+    await fetch(`${API_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tableName: targetTable,
-        items: itemsToSend,
-        tableStatus: 'ordering'
+        selectedTable: targetTable,
+        newSelection: itemsToSend,
+        status: 'ordering'
       })
     });
     setNewSelection([]);
@@ -271,12 +271,7 @@ try {
   } catch (e) {
     alert('❌ Lỗi kết nối máy chủ!');
   }
-setNewSelection([]);
-alert(`🔔 Đã báo bếp thành công cho ${targetTable}!`);
-fetchData();
-} catch (e) {
-alert('❌ Lỗi kết nối máy chủ!');
-}
+};
 };
 
 const handleConfirmKitchen = async (tName) => {
