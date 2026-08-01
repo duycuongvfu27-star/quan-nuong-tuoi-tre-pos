@@ -69,7 +69,6 @@ app.get('/orders', (req, res) => {
 app.post('/api/orders', (req, res) => {
   const { selectedTable, newSelection, status, isCustomer } = req.body;
 
-  // Chỉ chặn khách QR nếu quán đang tắt tính năng order QR
   if (isCustomer && !locationConfig.enableCustomerOrdering) {
     return res.status(403).json({ success: false, message: 'Quán đang tạm ngưng nhận order qua QR!' });
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const API_URL = 'https://quan-nuong-tuoi-tre-pos.onrender.com';
 
@@ -101,6 +101,11 @@ export default function App() {
   const [bankConfig, setBankConfig] = useState({ bankId: 'MB', accountNo: '0984414434', accountName: 'QUAN NUONG TUOI TRE' });
   const [staffList, setStaffList] = useState(INITIAL_STAFF);
 
+  // 🔊 Trạng thái lưu nội dung thông báo giọng nói tùy chỉnh
+  const [notificationText, setNotificationText] = useState(() => {
+    return localStorage.getItem('POS_NOTIF_TEXT') || 'Có khách gọi món tại';
+  });
+
   const [menu, setMenu] = useState(() => {
     const saved = localStorage.getItem('POS_MENU_V2');
     return saved ? JSON.parse(saved) : INITIAL_MENU;
@@ -129,13 +134,37 @@ export default function App() {
   const [newItemPrice, setNewItemPrice] = useState("");
 
   useEffect(() => { localStorage.setItem('POS_MENU_V2', JSON.stringify(menu)); }, [menu]);
+  useEffect(() => { localStorage.setItem('POS_NOTIF_TEXT', notificationText); }, [notificationText]);
+
+  const prevTablesRef = useRef({});
 
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.tableStatus) setTables(data.tableStatus);
+        if (data.tableStatus) {
+          // 🔊 Kiểm tra nếu có bàn chuyển sang màu cam ('ordering')
+          if (user && user.role !== 'customer') {
+            Object.keys(data.tableStatus).forEach(tName => {
+              const oldStatus = prevTablesRef.current[tName] || 'empty';
+              const newStatus = data.tableStatus[tName];
+              if (oldStatus !== 'ordering' && newStatus === 'ordering') {
+                const speechText = `${notificationText} ${tName}`;
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                  const utterance = new SpeechSynthesisUtterance(speechText);
+                  utterance.lang = 'vi-VN';
+                  window.speechSynthesis.speak(utterance);
+                }
+              }
+            });
+            prevTablesRef.current = { ...data.tableStatus };
+          }
+
+          setTables(data.tableStatus);
+        }
+
         if (data.completedOrders && Array.isArray(data.completedOrders)) {
           setCompletedOrders(data.completedOrders);
         }
@@ -178,7 +207,7 @@ export default function App() {
     fetchData();
     const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user, notificationText]);
 
   const handleSaveBankConfig = async () => {
     try {
@@ -205,7 +234,7 @@ export default function App() {
         body: JSON.stringify(locationConfig)
       });
       if (res.ok) {
-        alert("✅ Đã lưu cấu hình GPS và trạng thái QR thành công!");
+        alert("✅ Đã lưu cấu hình GPS, QR và thông báo giọng nói thành công!");
       } else {
         alert("❌ Lỗi lưu cấu hình lên server!");
       }
@@ -305,7 +334,6 @@ export default function App() {
       return;
     }
 
-    // CHỈ KIỂM TRA GPS NẾU ĐÓ LÀ KHÁCH QUÉT QR (Nhân viên/Quản lý bỏ qua hoàn toàn)
     if (isCustomer && locationConfig.enableProtection) {
       if (!navigator.geolocation) {
         alert("❌ Trình duyệt của bạn không hỗ trợ định vị GPS!");
@@ -1107,6 +1135,21 @@ export default function App() {
                     Kích hoạt kiểm tra khoảng cách GPS (Chỉ áp dụng cho khách)
                   </label>
                 </div>
+
+                {/* 🔊 Ô nhập nội dung thông báo giọng nói tùy chỉnh */}
+                <div style={{ backgroundColor: '#1e293b', padding: '10px', borderRadius: '6px', border: '1px solid #334155' }}>
+                  <label style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>
+                    🔊 Nội dung giọng nói khi bàn chuyển màu cam (Có khách gọi món):
+                  </label>
+                  <input
+                    type="text"
+                    value={notificationText}
+                    onChange={e => setNotificationText(e.target.value)}
+                    placeholder="Ví dụ: Có khách gọi món tại"
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', backgroundColor: '#0f172a', color: '#fff', border: '1px solid #3b82f6', fontSize: '12px' }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>* Hệ thống sẽ đọc nội dung này kèm theo tên bàn (VD: "Có khách gọi món tại Bàn 01")</span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1150,7 +1193,7 @@ export default function App() {
                   onClick={handleSaveLocationConfig} 
                   style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}
                 >
-                  LƯU CẤU HÌNH GPS & QR
+                  LƯU CẤU HÌNH GPS & THÔNG BÁO
                 </button>
               </div>
             </div>
