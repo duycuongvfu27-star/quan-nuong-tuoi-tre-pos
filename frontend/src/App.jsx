@@ -55,8 +55,12 @@ const INITIAL_STAFF = [
 ];
 
 export default function App() {
+  // Kiểm tra xem trình duyệt đang mở có phải là khách quét QR từ bàn hay không (URL có dạng ?table=Bàn 01)
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrTableParam = urlParams.get('table');
+
   const [pin, setPin] = useState('');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(qrTableParam ? { name: `Khách (${qrTableParam})`, role: 'Customer' } : null);
   const [activeTab, setActiveTab] = useState('pos');
   const [settingsSubTab, setSettingsSubTab] = useState('menu');
   
@@ -84,7 +88,7 @@ export default function App() {
   const [tables, setTables] = useState({});
   const [kitchenOrders, setKitchenOrders] = useState([]);
 
-  const [selectedTable, setSelectedTable] = useState('Bàn 01');
+  const [selectedTable, setSelectedTable] = useState(qrTableParam || 'Bàn 01');
   const [newSelection, setNewSelection] = useState([]);
   const [targetTable, setTargetTable] = useState('');
 
@@ -104,7 +108,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
-  // HÀM ĐỒNG BỘ THỜI GIAN THỰC GIỮA CÁC THIẾT BỊ (GỌI MỖI 2 GIÂY)
+  // ĐỒNG BỘ THỜI GIAN THỰC TỪ SERVER CHO TẤT CẢ CÁC MÁY (MỖI 2 GIÂY)
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
@@ -119,7 +123,7 @@ export default function App() {
           data.activeOrders.forEach(ord => {
             if (ord.tableName && ord.items && ord.items.length > 0) {
               orderMap[ord.tableName] = ord.items;
-              if (ord.tableStatus === 'ordering' || ord.status === 'ordering') {
+              if (ord.tableStatus === 'ordering') {
                 kOrders.push({
                   tableName: ord.tableName,
                   items: ord.items
@@ -129,7 +133,7 @@ export default function App() {
           });
         }
         setServerOrders(orderMap);
-        if (kOrders.length > 0) setKitchenOrders(kOrders);
+        setKitchenOrders(kOrders);
       }
     } catch (err) {
       console.error("Lỗi sync:", err);
@@ -138,7 +142,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 2000); // 2 giây sync một lần giữa các thiết bị
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -223,6 +227,7 @@ export default function App() {
     }
   };
 
+  // GỬI BÁO BẾP / KHÁCH GỬI ORDER TỪ QR
   const sendOrderToKitchen = async () => {
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
@@ -230,40 +235,34 @@ export default function App() {
     }
 
     const itemsToSend = [...newSelection];
+    const targetT = qrTableParam || selectedTable;
 
-    const currentTableItems = serverOrders[selectedTable] || [];
-    const merged = [...currentTableItems];
-    
-    itemsToSend.forEach(newItem => {
-      const found = merged.find(i => i.name === newItem.name);
-      if (found) {
-        found.quantity += newItem.quantity;
-      } else {
-        merged.push({ ...newItem });
-      }
+    setServerOrders(prev => {
+      const currentTableItems = prev[targetT] || [];
+      const merged = [...currentTableItems];
+      
+      itemsToSend.forEach(newItem => {
+        const found = merged.find(i => i.name === newItem.name);
+        if (found) {
+          found.quantity += newItem.quantity;
+        } else {
+          merged.push({ ...newItem });
+        }
+      });
+
+      return { ...prev, [targetT]: merged };
     });
 
-    setServerOrders(prev => ({ ...prev, [selectedTable]: merged }));
-
-    setKitchenOrders(prev => {
-      const existingK = prev.find(o => o.tableName === selectedTable);
-      if (existingK) {
-        return prev.map(o => o.tableName === selectedTable ? { ...o, items: [...o.items, ...itemsToSend] } : o);
-      } else {
-        return [...prev, { tableName: selectedTable, items: itemsToSend }];
-      }
-    });
-
-    setTables(prev => ({ ...prev, [selectedTable]: 'ordering' }));
+    setTables(prev => ({ ...prev, [targetT]: 'ordering' }));
     setNewSelection([]);
-    alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
+    alert(`🟠 Đã gửi thành công món cho ${targetT}! Quán sẽ chuẩn bị phục vụ.`);
 
     try {
       await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          selectedTable,
+          selectedTable: targetT,
           newSelection: itemsToSend,
           status: 'ordering'
         })
@@ -358,7 +357,6 @@ export default function App() {
 
       setServerOrders(prev => ({ ...prev, [selectedTable]: [] }));
       setTables(prev => ({ ...prev, [selectedTable]: 'empty' }));
-      setKitchenOrders(prev => prev.filter(o => o.tableName !== selectedTable));
       setShowCheckout(false);
       setNewSelection([]);
       alert(`🟢 ${selectedTable} đã thanh toán & trả bàn trống!`);
@@ -427,6 +425,86 @@ export default function App() {
     .map((_, idx) => `Bàn ${String(idx + 1).padStart(2, '0')}`)
     .filter(tName => (tables[tName] || 'empty') === 'empty' && tName !== selectedTable);
 
+  // GIAO DIỆN DÀNH RIÊNG CHO KHÁCH QUÉT QR TỪ ĐIỆN THOẠI
+  if (qrTableParam) {
+    const customerTableItems = serverOrders[qrTableParam] || [];
+    const customerTotal = customerTableItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+    return (
+      <div style={{ backgroundColor: '#0f172a', color: '#f8fafc', minHeight: '100vh', padding: '16px', fontFamily: 'sans-serif', maxWidth: '480px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '16px', borderBottom: '1px solid #334155', paddingBottom: '12px' }}>
+          <h2 style={{ color: '#f97316', margin: '0 0 4px 0' }}>🔥 QUÁN NƯỚNG TUỔI TRẺ</h2>
+          <span style={{ fontSize: '14px', backgroundColor: '#f97316', color: '#fff', padding: '2px 10px', borderRadius: '12px', fontWeight: 'bold' }}>📍 {qrTableParam}</span>
+        </div>
+
+        {/* Danh sách thực đơn cho khách chọn */}
+        <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px', maxHeight: '40vh', overflowY: 'auto' }}>
+          <h3 style={{ fontSize: '13px', color: '#4ade80', margin: '0 0 8px 0' }}>📖 THỰC ĐƠN GỌI MÓN</h3>
+          {menu.map((cat, idx) => (
+            <div key={idx} style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#f97316', fontWeight: 'bold', marginBottom: '4px' }}>{cat.cat}</div>
+              {cat.items.map((item, iIdx) => {
+                const exist = newSelection.find(i => i.name === item.name);
+                const q = exist ? exist.quantity : 0;
+                return (
+                  <div key={iIdx} onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f172a', padding: '8px', borderRadius: '6px', marginBottom: '6px', cursor: 'pointer', border: q > 0 ? '1px solid #f97316' : '1px solid #1e293b' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.name}</div>
+                      <div style={{ fontSize: '11px', color: '#f97316' }}>{item.price.toLocaleString()}đ</div>
+                    </div>
+                    {q > 0 ? <span style={{ backgroundColor: '#ea580c', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold' }}>x{q}</span> : <span style={{ fontSize: '12px', color: '#38bdf8' }}>+ Thêm</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Giỏ hàng món mới gọi */}
+        <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '13px', color: '#38bdf8', margin: '0 0 8px 0' }}>🛒 MÓN CHỜ GỬI BẾP</h3>
+          {newSelection.length === 0 ? (
+            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Chưa chọn món nào</div>
+          ) : (
+            newSelection.map(item => (
+              <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '12px' }}>
+                <span>{item.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button onClick={() => updateNewSelection(item.name, item.price, -1)} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '3px', width: '20px', height: '20px', cursor: 'pointer' }}>-</button>
+                  <b style={{ color: '#38bdf8' }}>x{item.quantity}</b>
+                  <button onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '3px', width: '20px', height: '20px', cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
+            ))
+          )}
+          <button onClick={sendOrderToKitchen} style={{ width: '100%', marginTop: '10px', padding: '12px', backgroundColor: '#f97316', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+            🚀 GỬI ORDER CHO QUÁN
+          </button>
+        </div>
+
+        {/* Danh sách món đã gọi trước đó */}
+        <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px' }}>
+          <h3 style={{ fontSize: '13px', color: '#4ade80', margin: '0 0 8px 0' }}>📋 MÓN ĐÃ GỬI BẾP CỦA BÀN</h3>
+          {customerTableItems.length === 0 ? (
+            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Chưa có món nào được duyệt</div>
+          ) : (
+            customerTableItems.map(item => (
+              <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                <span>{item.name}</span>
+                <b>x{item.quantity}</b>
+              </div>
+            ))
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', borderTop: '1px solid #334155', paddingTop: '8px', fontWeight: 'bold' }}>
+            <span>Tổng cộng:</span>
+            <span style={{ color: '#4ade80' }}>{customerTotal.toLocaleString()}đ</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ĐĂNG NHẬP DÀNH CHO NHÂN VIÊN / QUẢN LÝ TRÊN MÁY TÍNH
   if (!user) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', color: '#fff', fontFamily: 'sans-serif' }}>
