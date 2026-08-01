@@ -150,10 +150,10 @@ data.activeOrders.forEach(ord => {
 if (ord.tableName && ord.items && ord.items.length > 0) {
         orderMap[ord.tableName] = ord.items;
       }
-      if (ord.tableStatus === 'ordering' || ord.tableStatus === 'busy') {
+      if (ord.status === 'ordering' || ord.tableStatus === 'ordering' || ord.tableStatus === 'busy') {
         kOrders.push({
           tableName: ord.tableName,
-          items: ord.items
+          items: ord.kitchenItems && ord.kitchenItems.length > 0 ? ord.kitchenItems : ord.items
         });
       }
 }
