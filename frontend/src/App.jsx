@@ -77,9 +77,12 @@ const INITIAL_STAFF = [
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const tableParam = urlParams.get('table');
+  
+  // CHUẨN HÓA TÊN BÀN LUÔN CÓ ĐỊNH DẠNG 2 CHỮ SỐ (Bàn 01, Bàn 02...)
+  const formattedTableNum = tableParam ? String(tableParam).padStart(2, '0') : '';
 
   const [pin, setPin] = useState('');
-  const [user, setUser] = useState(tableParam ? { name: `Khách (Bàn ${tableParam})`, role: 'customer' } : null);
+  const [user, setUser] = useState(tableParam ? { name: `Khách (Bàn ${formattedTableNum})`, role: 'customer' } : null);
   const [activeTab, setActiveTab] = useState('pos');
   const [settingsSubTab, setSettingsSubTab] = useState('menu');
 
@@ -98,7 +101,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_STAFF;
   });
 
-  // SỬ DỤNG KEY V2 ĐỂ ÉP LÀM MỚI TOÀN BỘ 25 MÓN NƯỚNG
   const [menu, setMenu] = useState(() => {
     const saved = localStorage.getItem('POS_MENU_V2');
     return saved ? JSON.parse(saved) : INITIAL_MENU;
@@ -253,7 +255,8 @@ export default function App() {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
       return;
     }
-    const targetTable = tableParam ? `Bàn ${tableParam}` : selectedTable;
+    // ĐẢM BẢO TÊN BÀN LUÔN KHỚP CHUẨN (Bàn 01, Bàn 02...)
+    const targetTable = tableParam ? `Bàn ${formattedTableNum}` : selectedTable;
     const itemsToSend = [...newSelection];
 
     try {
@@ -426,7 +429,7 @@ export default function App() {
     .filter(tName => (tables[tName] || 'empty') === 'empty' && tName !== selectedTable);
 
   if (tableParam || (user && user.role === 'customer')) {
-    const tName = tableParam ? `Bàn ${tableParam.padStart(2, '0')}` : selectedTable;
+    const tName = `Bàn ${formattedTableNum}`;
     const cusItems = serverOrders[tName] || [];
     const cusTotal = cusItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
 
@@ -438,7 +441,7 @@ export default function App() {
         </div>
 
         <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN (ĐẦY ĐỦ 25 MÓN NƯỚNG)</div>
+          <div style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>📖 THỰC ĐƠN GỌI MÓN</div>
           {menu.map((cat, idx) => (
             <div key={idx} style={{ marginBottom: '12px' }}>
               <div style={{ fontSize: '12px', color: '#f97316', fontWeight: 'bold', marginBottom: '6px' }}>{cat.cat}</div>
@@ -599,7 +602,6 @@ export default function App() {
 
       {activeTab === 'pos' && (
         <>
-          {/* SƠ ĐỒ 16 BÀN */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))', gap: '6px', marginBottom: '16px' }}>
             {Array.from({ length: 16 }).map((_, idx) => {
               const tName = `Bàn ${String(idx + 1).padStart(2, '0')}`;
@@ -643,10 +645,7 @@ export default function App() {
             })}
           </div>
 
-          {/* TỪ BÀN HẤT XUỐNG: SẮP XẾP THẲNG THEO CHIỀU DỌC (COLUMN) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            {/* 1. THỰC ĐƠN GỌI MÓN (HIỂN THỊ TOÀN BỘ DANH SÁCH MÓN) */}
             <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '8px' }}>
               {menu.map((cat, idx) => (
                 <div key={idx} style={{ marginBottom: '16px' }}>
@@ -685,7 +684,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* 2. GIỎ HÀNG & NÚT THANH TOÁN */}
             <div style={{ backgroundColor: '#1e293b', padding: '14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <h3 style={{ margin: '0', fontSize: '14px', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>
                 📌 Đang chọn: <span style={{ color: '#f97316' }}>{selectedTable}</span>
@@ -822,13 +820,14 @@ export default function App() {
             <div>
               <div style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #334155' }}>
                 <h3 style={{ margin: '0 0 6px 0', color: '#4ade80', fontSize: '14px' }}>📱 Danh Sách Mã QR Order Cho 16 Bàn</h3>
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Khách quét mã này sẽ hiện giao diện đặt món tối ưu riêng cho điện thoại.</p>
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Quét mã này sẽ tự động nhận diện đúng tên bàn (Bàn 01 đến Bàn 16) và hiển thị đầy đủ menu trên điện thoại.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                 {Array.from({ length: 16 }).map((_, idx) => {
-                  const tName = `Bàn ${String(idx + 1).padStart(2, '0')}`;
-                  const orderUrl = `https://quan-nuong-tuoi-tre-pos.vercel.app/?table=${encodeURIComponent(idx + 1)}`;
+                  const tableNum = idx + 1;
+                  const tName = `Bàn ${String(tableNum).padStart(2, '0')}`;
+                  const orderUrl = `${window.location.origin}/?table=${tableNum}`;
                   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(orderUrl)}`;
 
                   return (
