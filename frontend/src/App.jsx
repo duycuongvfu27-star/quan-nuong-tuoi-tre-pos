@@ -111,26 +111,15 @@ export default function App() {
         if (data.tableStatus) setTables(data.tableStatus);
 
         const orderMap = {};
-        const kOrders = [];
-
         if (data.activeOrders && Array.isArray(data.activeOrders)) {
           data.activeOrders.forEach(ord => {
             if (ord.tableName && ord.items && ord.items.length > 0) {
               orderMap[ord.tableName] = ord.items;
-              if (ord.tableStatus === 'ordering') {
-                kOrders.push({
-                  tableName: ord.tableName,
-                  items: ord.items
-                });
-              }
             }
           });
         }
         if (Object.keys(orderMap).length > 0) {
           setServerOrders(orderMap);
-        }
-        if (kOrders.length > 0) {
-          setKitchenOrders(kOrders);
         }
       }
     } catch (err) {
@@ -138,7 +127,6 @@ export default function App() {
     }
   };
 
-  // Chỉ gọi fetch một lần duy nhất lúc vừa vào trang, loại bỏ setInterval gây xung đột
   useEffect(() => {
     fetchData();
   }, []);
@@ -205,7 +193,6 @@ export default function App() {
     }
 
     const total = currentItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-
     setServerOrders(prev => ({ ...prev, [selectedTable]: currentItems }));
 
     try {
@@ -248,19 +235,27 @@ export default function App() {
       return { ...prev, [selectedTable]: merged };
     });
 
+    setKitchenOrders(prev => {
+      const existingK = prev.find(o => o.tableName === selectedTable);
+      if (existingK) {
+        return prev.map(o => o.tableName === selectedTable ? { ...o, items: [...o.items, ...itemsToSend] } : o);
+      } else {
+        return [...prev, { tableName: selectedTable, items: itemsToSend }];
+      }
+    });
+
     setTables(prev => ({ ...prev, [selectedTable]: 'ordering' }));
     setNewSelection([]);
     alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
 
     try {
-      await fetch(`${API_URL}/api/checkout`, {
+      await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tableName: selectedTable,
-          items: serverOrders[selectedTable] ? [...serverOrders[selectedTable], ...itemsToSend] : itemsToSend,
-          tableStatus: 'ordering',
-          isStaff: true
+          selectedTable,
+          newSelection: itemsToSend,
+          status: 'ordering'
         })
       });
     } catch (e) {
@@ -268,22 +263,9 @@ export default function App() {
     }
   };
 
-  const handleConfirmKitchen = async (tName) => {
+  const handleConfirmKitchen = (tName) => {
     setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
     setTables(prev => ({ ...prev, [tName]: 'busy' }));
-
-    try {
-      await fetch(`${API_URL}/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tableName: tName,
-          tableStatus: 'busy'
-        })
-      });
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   const handleQuickMoveTable = async () => {
@@ -360,6 +342,7 @@ export default function App() {
 
       setServerOrders(prev => ({ ...prev, [selectedTable]: [] }));
       setTables(prev => ({ ...prev, [selectedTable]: 'empty' }));
+      setKitchenOrders(prev => prev.filter(o => o.tableName !== selectedTable));
       setShowCheckout(false);
       setNewSelection([]);
       alert(`🟢 ${selectedTable} đã thanh toán & trả bàn trống!`);
@@ -657,15 +640,19 @@ export default function App() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '12px', color: '#f97316', marginBottom: '6px', fontWeight: 'bold' }}>➕ MÓN MỚI LẦN NÀY:</div>
+                  <div style={{ fontSize: '12px', color: '#f97316', marginBottom: '6px', fontWeight: 'bold' }}>➕ MÓN MỚI LẦN NÀY (CÓ CỘNG TRỪ):</div>
                   <div style={{ maxHeight: '12vh', overflowY: 'auto', backgroundColor: '#0f172a', padding: '8px', borderRadius: '6px' }}>
                     {newSelection.length === 0 ? (
                       <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Bấm món bên trái để chọn</div>
                     ) : (
                       newSelection.map(item => (
                         <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '12px' }}>
-                          <span>{item.name}</span>
-                          <b style={{ color: '#f97316' }}>x{item.quantity}</b>
+                          <span style={{ width: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button onClick={() => updateNewSelection(item.name, item.price, -1)} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '3px', width: '20px', height: '20px', cursor: 'pointer' }}>-</button>
+                            <b style={{ color: '#38bdf8' }}>x{item.quantity}</b>
+                            <button onClick={() => updateNewSelection(item.name, item.price, 1)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '3px', width: '20px', height: '20px', cursor: 'pointer' }}>+</button>
+                          </div>
                         </div>
                       ))
                     )}
