@@ -1,26 +1,28 @@
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Mở CORS cho tất cả các domain (Vercel, Mobile, Local)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
-// Route test server
+// Trang chủ backend test
 app.get('/', (req, res) => {
-  res.send('Backend POS Quán Nướng Tuổi Trẻ đang chạy!');
+  res.send('Backend POS Quán Nướng Tuổi Trẻ đang chạy ngon lành!');
 });
 
-// Route đặt món / checkout
-app.post('/api/checkout', async (req, res) => {
+// Route checkout chính
+app.post('/api/checkout', (req, res) => {
   try {
-    const { selectedTable, newSelection, status } = req.body;
-
-    // Lưu hoặc xử lý đơn hàng
-    console.log("Đơn hàng mới từ bàn:", selectedTable, newSelection);
+    const { selectedTable, newSelection } = req.body;
+    console.log(`[ORDER MỚI] Bàn: ${selectedTable}`, newSelection);
 
     return res.status(200).json({
       success: true,
@@ -29,8 +31,26 @@ app.post('/api/checkout', async (req, res) => {
       items: newSelection
     });
   } catch (error) {
-    console.error('Lỗi lưu order:', error);
-    return res.status(500).json({ error: 'Lỗi Backend khi xử lý đơn hàng!' });
+    console.error('Lỗi Backend:', error);
+    return res.status(500).json({ error: 'Lỗi Backend!' });
+  }
+});
+
+// Route checkout phụ (Tránh trường hợp frontend gọi không có /api)
+app.post('/checkout', (req, res) => {
+  try {
+    const { selectedTable, newSelection } = req.body;
+    console.log(`[ORDER MỚI] Bàn: ${selectedTable}`, newSelection);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Gửi báo bếp thành công!',
+      table: selectedTable,
+      items: newSelection
+    });
+  } catch (error) {
+    console.error('Lỗi Backend:', error);
+    return res.status(500).json({ error: 'Lỗi Backend!' });
   }
 });
 
