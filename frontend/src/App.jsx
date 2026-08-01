@@ -103,9 +103,10 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
+  // ĐÃ FIX: Thêm chống cache ?t= để chặn sạch lỗi 304 ghi đè mất món
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_URL}/orders`);
+      const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         setTables(data.tableStatus || {});
@@ -136,7 +137,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 3000); // Đã giãn thời gian sync để mượt hơn
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -220,7 +221,6 @@ export default function App() {
     }
   };
 
-  // ĐÃ FIX: Khóa state ngay lập tức, không bị vòng lặp sync ghi đè mất món
   const sendOrderToKitchen = async () => {
     if (newSelection.length === 0) {
       alert("⚠️ Vui lòng chọn món mới trước khi gửi!");
@@ -229,7 +229,6 @@ export default function App() {
 
     const itemsToSend = [...newSelection];
 
-    // Cập nhật giao diện lập tức trước khi gọi API
     setServerOrders(prev => {
       const currentTableItems = prev[selectedTable] || [];
       const merged = [...currentTableItems];
