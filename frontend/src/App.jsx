@@ -294,7 +294,9 @@ export default function App() {
   };
 
   const sendOrderToKitchen = async () => {
-    if (!locationConfig.enableCustomerOrdering) {
+    const isCustomer = !!tableParam || (user && user.role === 'customer');
+
+    if (isCustomer && !locationConfig.enableCustomerOrdering) {
       alert("⚠️ Quán đang tạm ngưng nhận order tự động qua QR!");
       return;
     }
@@ -303,7 +305,8 @@ export default function App() {
       return;
     }
 
-    if (locationConfig.enableProtection) {
+    // CHỈ KIỂM TRA GPS NẾU ĐÓ LÀ KHÁCH QUÉT QR (Nhân viên/Quản lý bỏ qua hoàn toàn)
+    if (isCustomer && locationConfig.enableProtection) {
       if (!navigator.geolocation) {
         alert("❌ Trình duyệt của bạn không hỗ trợ định vị GPS!");
         return;
@@ -324,7 +327,7 @@ export default function App() {
             return;
           }
 
-          await executeSendOrder();
+          await executeSendOrder(isCustomer);
         },
         (error) => {
           alert("❌ Vui lòng cấp quyền truy cập vị trí (GPS) để xác thực bạn đang ở tại quán nướng!");
@@ -332,11 +335,11 @@ export default function App() {
         { timeout: 10000, enableHighAccuracy: true }
       );
     } else {
-      await executeSendOrder();
+      await executeSendOrder(isCustomer);
     }
   };
 
-  const executeSendOrder = async () => {
+  const executeSendOrder = async (isCustomer) => {
     const targetTable = tableParam ? `Bàn ${formattedTableNum}` : selectedTable;
     const itemsToSend = [...newSelection];
 
@@ -347,7 +350,8 @@ export default function App() {
         body: JSON.stringify({
           selectedTable: targetTable,
           newSelection: itemsToSend,
-          status: 'ordering'
+          status: 'ordering',
+          isCustomer: isCustomer
         })
       });
       const data = await res.json();
@@ -1100,7 +1104,7 @@ export default function App() {
                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                   />
                   <label htmlFor="enableProtection" style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', color: '#f97316' }}>
-                    Kích hoạt kiểm tra khoảng cách GPS
+                    Kích hoạt kiểm tra khoảng cách GPS (Chỉ áp dụng cho khách)
                   </label>
                 </div>
               </div>

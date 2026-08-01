@@ -21,11 +21,11 @@ let staffList = [
 ];
 
 let locationConfig = { 
-  lat: 20.3833, 
-  lng: 106.1333, 
+  lat: 20.3252630, 
+  lng: 106.0159622, 
   maxDistance: 50, 
   enableProtection: true,
-  enableCustomerOrdering: true // 👈 Công tắc bật/tắt order QR của khách
+  enableCustomerOrdering: true 
 };
 
 app.post('/api/bank', (req, res) => {
@@ -67,11 +67,13 @@ app.get('/orders', (req, res) => {
 });
 
 app.post('/api/orders', (req, res) => {
-  if (!locationConfig.enableCustomerOrdering) {
+  const { selectedTable, newSelection, status, isCustomer } = req.body;
+
+  // Chỉ chặn khách QR nếu quán đang tắt tính năng order QR
+  if (isCustomer && !locationConfig.enableCustomerOrdering) {
     return res.status(403).json({ success: false, message: 'Quán đang tạm ngưng nhận order qua QR!' });
   }
 
-  const { selectedTable, newSelection, status } = req.body;
   if (!selectedTable || !newSelection) {
     return res.status(400).json({ success: false, message: 'Thiếu thông tin bàn hoặc món' });
   }
