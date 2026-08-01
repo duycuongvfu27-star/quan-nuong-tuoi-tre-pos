@@ -145,16 +145,19 @@ export default function App() {
         const kOrders = [];
 
         if (data.activeOrders && Array.isArray(data.activeOrders)) {
-          data.activeOrders.forEach(ord => {
-            if (ord.tableName && ord.items && ord.items.length > 0) {
-              orderMap[ord.tableName] = ord.items;
+        data.activeOrders.forEach(ord => {
+          if (ord.tableName && ord.items && ord.items.length > 0) {
+            orderMap[ord.tableName] = ord.items;
+            
+            if (ord.kitchenItems && ord.kitchenItems.length > 0) {
               kOrders.push({
                 tableName: ord.tableName,
-                items: ord.items
+                items: ord.kitchenItems
               });
             }
-          });
-        }
+          }
+        });
+      }
         const filteredKOrders = kOrders.filter(o => !dismissedKitchenTables.includes(o.tableName));
         setServerOrders(orderMap);
         setKitchenOrders(filteredKOrders);
