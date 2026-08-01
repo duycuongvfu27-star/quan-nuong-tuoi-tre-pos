@@ -74,7 +74,6 @@ const INITIAL_STAFF = [
   { name: "Thu Ngân 01", pin: "111111", role: "staff" }
 ];
 
-// Hàm tính khoảng cách GPS (Mét)
 function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -100,7 +99,7 @@ export default function App() {
 
   const [locationConfig, setLocationConfig] = useState(() => {
     const saved = localStorage.getItem('POS_LOCATION');
-    return saved ? JSON.parse(saved) : { lat: 20.3833, lng: 106.1333, maxDistance: 50, enableProtection: true, enableCustomerOrdering: true };
+    return saved ? JSON.parse(saved) : { lat: 20.3252630, lng: 106.0159622, maxDistance: 50, enableProtection: true, enableCustomerOrdering: true };
   });
 
   const [bankConfig, setBankConfig] = useState(() => {
@@ -310,7 +309,6 @@ export default function App() {
     }
   };
 
-  // 📍 KIỂM TRA GPS CỦA KHÁCH TRƯỚC KHI GỬI ORDER
   const sendOrderToKitchen = async () => {
     if (!locationConfig.enableCustomerOrdering) {
       alert("⚠️ Quán đang tạm ngưng nhận order tự động qua QR!");
@@ -321,7 +319,6 @@ export default function App() {
       return;
     }
 
-    // Nếu bật bảo vệ GPS
     if (locationConfig.enableProtection) {
       if (!navigator.geolocation) {
         alert("❌ Trình duyệt của bạn không hỗ trợ định vị GPS!");
@@ -343,7 +340,6 @@ export default function App() {
             return;
           }
 
-          // Vị trí hợp lệ -> Gửi đơn
           await executeSendOrder();
         },
         (error) => {
