@@ -272,23 +272,24 @@ alert('❌ Lỗi kết nối máy chủ!');
 };
 
 const handleConfirmKitchen = async (tName) => {
-setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
-setTables(prev => ({ ...prev, [tName]: 'busy' }));
+    setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
+    setTables(prev => ({ ...prev, [tName]: 'busy' }));
 
-try {
-await fetch(`${API_URL}/checkout`, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-tableName: tName,
-tableStatus: 'busy'
-})
-});
-fetchData();
-} catch (e) {
-console.error(e);
-}
-};
+    try {
+      await fetch(`${API_URL}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableName: tName,
+          tableStatus: 'busy'
+        })
+      });
+      fetchData();
+    } catch (e) {
+      console.error("Lỗi xác nhận bếp:", e);
+      alert("❌ Lỗi kết nối server khi xác nhận bếp!");
+    }
+  };
 
 const handleQuickMoveTable = async () => {
 if (!targetTable) {
