@@ -103,6 +103,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('POS_STAFF', JSON.stringify(staffList)); }, [staffList]);
   useEffect(() => { localStorage.setItem('POS_MENU', JSON.stringify(menu)); }, [menu]);
 
+  // HÀM ĐỒNG BỘ DỮ LIỆU TỪ SERVER RENDER
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_URL}/orders?t=${Date.now()}`);
@@ -111,24 +112,35 @@ export default function App() {
         if (data.tableStatus) setTables(data.tableStatus);
 
         const orderMap = {};
+        const kOrders = [];
+
         if (data.activeOrders && Array.isArray(data.activeOrders)) {
           data.activeOrders.forEach(ord => {
             if (ord.tableName && ord.items && ord.items.length > 0) {
               orderMap[ord.tableName] = ord.items;
+              // Nếu bàn đang ở trạng thái ordering (có món mới báo bếp), tự động đẩy vào màn hình Bếp KDS
+              if (ord.tableStatus === 'ordering') {
+                kOrders.push({
+                  tableName: ord.tableName,
+                  items: ord.items
+                });
+              }
             }
           });
         }
-        if (Object.keys(orderMap).length > 0) {
-          setServerOrders(orderMap);
-        }
+        setServerOrders(orderMap);
+        setKitchenOrders(kOrders);
       }
     } catch (err) {
       console.error("Lỗi sync:", err);
     }
   };
 
+  // KÍCH HOẠT TỰ ĐỘNG ĐỒNG BỘ MỖI 2 GIÂY GIỮA CÁC THIẾT BỊ
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = async () => {
@@ -206,6 +218,7 @@ export default function App() {
           tableStatus: currentItems.length > 0 ? (tables[selectedTable] || 'busy') : 'empty'
         })
       });
+      fetchData();
     } catch (e) {
       alert("Lỗi cập nhật!");
     }
@@ -235,15 +248,6 @@ export default function App() {
       return { ...prev, [selectedTable]: merged };
     });
 
-    setKitchenOrders(prev => {
-      const existingK = prev.find(o => o.tableName === selectedTable);
-      if (existingK) {
-        return prev.map(o => o.tableName === selectedTable ? { ...o, items: [...o.items, ...itemsToSend] } : o);
-      } else {
-        return [...prev, { tableName: selectedTable, items: itemsToSend }];
-      }
-    });
-
     setTables(prev => ({ ...prev, [selectedTable]: 'ordering' }));
     setNewSelection([]);
     alert(`🟠 Đã báo bếp món mới cho ${selectedTable}!`);
@@ -258,14 +262,29 @@ export default function App() {
           status: 'ordering'
         })
       });
+      fetchData();
     } catch (e) {
       console.error("Lỗi ngầm gửi API:", e);
     }
   };
 
-  const handleConfirmKitchen = (tName) => {
+  const handleConfirmKitchen = async (tName) => {
     setKitchenOrders(prev => prev.filter(o => o.tableName !== tName));
     setTables(prev => ({ ...prev, [tName]: 'busy' }));
+
+    try {
+      await fetch(`${API_URL}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableName: tName,
+          tableStatus: 'busy'
+        })
+      });
+      fetchData();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleQuickMoveTable = async () => {
@@ -303,16 +322,7 @@ export default function App() {
       alert(`🚀 Đã chuyển toàn bộ đơn từ ${selectedTable} sang ${targetTable}!`);
       setSelectedTable(targetTable);
       setTargetTable('');
-      setServerOrders(prev => ({
-        ...prev,
-        [targetTable]: currentItems,
-        [selectedTable]: []
-      }));
-      setTables(prev => ({
-        ...prev,
-        [targetTable]: tables[selectedTable] || 'busy',
-        [selectedTable]: 'empty'
-      }));
+      fetchData();
     } catch (e) {
       alert("Lỗi khi chuyển bàn!");
     }
@@ -342,10 +352,10 @@ export default function App() {
 
       setServerOrders(prev => ({ ...prev, [selectedTable]: [] }));
       setTables(prev => ({ ...prev, [selectedTable]: 'empty' }));
-      setKitchenOrders(prev => prev.filter(o => o.tableName !== selectedTable));
       setShowCheckout(false);
       setNewSelection([]);
       alert(`🟢 ${selectedTable} đã thanh toán & trả bàn trống!`);
+      fetchData();
     } catch (e) {
       alert("Lỗi thanh toán!");
     }
