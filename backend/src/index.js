@@ -1,41 +1,39 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
-
-const ordersController = require('./modules/orders/orders.controller');
+const { PrismaClient } = require('@prisma/client');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// Gắn io vào req để phát tin hiệu realtime
-app.use((req, res, next) => {
-  req.io = io;
-  next();
+// Route test server
+app.get('/', (req, res) => {
+  res.send('Backend POS Quán Nướng Tuổi Trẻ đang chạy!');
 });
 
-// APIs
-app.get('/api/orders', ordersController.getOrders);
-app.post('/api/checkout', ordersController.handleCheckout);
+// Route đặt món / checkout
+app.post('/api/checkout', async (req, res) => {
+  try {
+    const { selectedTable, newSelection, status } = req.body;
 
-app.get('/api/staff', (req, res) => {
-  res.json([
-    { name: 'Quản Lý', pin: '123456', role: 'manager' },
-    { name: 'Thu Ngân', pin: '111111', role: 'staff' }
-  ]);
+    // Lưu hoặc xử lý đơn hàng
+    console.log("Đơn hàng mới từ bàn:", selectedTable, newSelection);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Gửi báo bếp thành công!',
+      table: selectedTable,
+      items: newSelection
+    });
+  } catch (error) {
+    console.error('Lỗi lưu order:', error);
+    return res.status(500).json({ error: 'Lỗi Backend khi xử lý đơn hàng!' });
+  }
 });
 
-io.on('connection', (socket) => {
-  console.log('⚡ Máy POS/Bếp đã kết nối:', socket.id);
-});
-
-const PORT = 5002;
-server.listen(PORT, () => {
-  console.log(`🔥 POS Backend Realtime đang chạy tại http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server đang chạy tại port ${PORT}`);
 });
